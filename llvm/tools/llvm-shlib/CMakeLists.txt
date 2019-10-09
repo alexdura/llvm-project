@@ -40,8 +40,9 @@ if(LLVM_BUILD_LLVM_DYLIB)
   endif()
 
   add_llvm_library(LLVM SHARED DISABLE_LLVM_LINK_LLVM_DYLIB SONAME ${SOURCES})
-
-  list(REMOVE_DUPLICATES LIB_NAMES)
+  if(LIB_NAMES)
+    list(REMOVE_DUPLICATES LIB_NAMES)
+  endif()
   if(("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux") OR (MINGW) OR (HAIKU)
      OR ("${CMAKE_SYSTEM_NAME}" STREQUAL "FreeBSD")
      OR ("${CMAKE_SYSTEM_NAME}" STREQUAL "GNU")
@@ -106,10 +107,10 @@ if(LLVM_BUILD_LLVM_C_DYLIB AND NOT MSVC)
   add_custom_target(libLLVMCExports DEPENDS ${LLVM_EXPORTED_SYMBOL_FILE})
 
   add_llvm_library(LLVM-C SHARED ${SOURCES})
-  
+
   target_link_libraries(LLVM-C PUBLIC LLVM)
   add_dependencies(LLVM-C libLLVMCExports)
-  
+
   set_property(TARGET LLVM-C APPEND_STRING PROPERTY
               LINK_FLAGS
               " -compatibility_version 1 -current_version ${LLVM_VERSION_MAJOR}.${LLVM_VERSION_MINOR}.${LLVM_VERSION_PATCH} -Wl,-reexport_library ${LIB_PATH}")
