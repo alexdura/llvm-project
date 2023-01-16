@@ -1083,5 +1083,12 @@ const internal::VariadicDynCastAllOfMatcher<OMPClause, OMPDefaultClause>
 const internal::VariadicDynCastAllOfMatcher<Decl, CXXDeductionGuideDecl>
     cxxDeductionGuideDecl;
 
+
+//
+const internal::VariadicDynCastDistinctMatcher<CompoundStmt, Stmt>
+    subStatementDistinct;
+const internal::VariadicDynCastDistinctMatcher<RecordDecl, FieldDecl>
+    fieldDistinct;
+
 } // end namespace ast_matchers
 } // end namespace clang

@@ -872,6 +872,25 @@ IteratorT matchesFirstInPointerRange(const MatcherT &Matcher, IteratorT Start,
   return End;
 }
 
+template <typename MatcherIteratorT, typename IteratorT>
+bool matchesMultipleInRange(MatcherIteratorT MatchersBegin,
+                            MatcherIteratorT MatchersEnd,
+                            IteratorT Start, IteratorT End,
+                            ASTMatchFinder *Finder,
+                            BoundNodesTreeBuilder *Builder) {
+  if (MatchersBegin == MatchersEnd)
+    return true;
+
+  bool Match = false;
+  for (auto I = Start; I != End; ++I) {
+    BoundNodesTreeBuilder Result(*Builder);
+    Match |= MatchersBegin->matches(*I, Finder, &Result) &&
+             matchesMultipleInRange(std::next(MatchersBegin), MatchersEnd,
+                                    std::next(I), End, Finder, &Result);
+  }
+  return Match;
+}
+
 template <typename T, std::enable_if_t<!std::is_base_of<FunctionDecl, T>::value>
                           * = nullptr>
 inline bool isDefaultedHelper(const T *) {
@@ -1300,6 +1319,54 @@ makeDynCastAllOfComposite(ArrayRef<const Matcher<InnerT> *> InnerMatchers) {
       makeAllOfComposite(InnerMatchers).template dynCastTo<T>());
 }
 
+
+template<typename U>
+  struct ChildInfo {
+    template<typename IteratorU>
+    static IteratorU child_begin(const U& Node) {
+      return Node.child_begin();
+    }
+
+    template<typename IteratorU>
+    static IteratorU child_end(const U& Node) {
+      return Node.child_end();
+    }
+};
+
+template <typename T, typename InnerT>
+class SeqMatcher : public MatcherInterface<T> {
+  ArrayRef<const BindableMatcher<InnerT>*> Matchers;
+
+public:
+  SeqMatcher(ArrayRef<const BindableMatcher<InnerT>*> InnerMatchers) : Matchers(InnerMatchers) {}
+
+  bool matches(const T &Node, ASTMatchFinder *Finder, BoundNodesTreeBuilder *Builder) const override {
+    return matchesMultipleInRange(Matchers.begin(), Matchers.end(),
+                                  ChildInfo<T>::child_begin(Node), ChildInfo<T>::child_end(Node),
+                                  Finder, Builder);
+  }
+};
+
+template<>
+struct ChildInfo<RecordDecl> {
+  template<typename IteratorU>
+  static IteratorU child_begin(const RecordDecl& Node) {
+    return Node.field_begin();
+  }
+
+  template<typename IteratorU>
+  static IteratorU child_end(const RecordDecl& Node) {
+    return Node.field_end();
+  }
+};
+
+
+template <typename T, typename InnerT>
+BindableMatcher<T>
+makeDynCastDistinct(ArrayRef<const BindableMatcher<InnerT> *> InnerMatchers) {
+  return BindableMatcher<T>(SeqMatcher<T, InnerT>(InnerMatchers));
+}
+
 /// A VariadicDynCastAllOfMatcher<SourceT, TargetT> object is a
 /// variadic functor that takes a number of Matcher<TargetT> and returns a
 /// Matcher<SourceT> that matches TargetT nodes that are matched by all of the
@@ -1336,6 +1403,16 @@ class VariadicAllOfMatcher
 public:
   VariadicAllOfMatcher() {}
 };
+
+///
+template <typename SourceT, typename TargetT>
+class VariadicDynCastDistinctMatcher
+  : public VariadicFunction<BindableMatcher<SourceT>, BindableMatcher<TargetT>,
+                            makeDynCastDistinct<SourceT, TargetT>> {
+public:
+  VariadicDynCastDistinctMatcher() {}
+};
+
 
 /// VariadicOperatorMatcher related types.
 /// @{
@@ -1627,6 +1704,10 @@ public:
 };
 
 /// @}
+
+
+
+
 
 template <typename T>
 inline Matcher<T> DynTypedMatcher::unconditionalConvertTo() const {

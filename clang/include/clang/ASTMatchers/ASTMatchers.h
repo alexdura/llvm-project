@@ -8466,6 +8466,21 @@ AST_MATCHER_P(OMPExecutableDirective, isAllowedToContainClauseKind,
 // End OpenMP handling.
 //----------------------------------------------------------------------------//
 
+//----------------------------------------------------------------------------//
+// Clog matchers
+//----------------------------------------------------------------------------//
+
+extern const internal::VariadicDynCastDistinctMatcher<CompoundStmt, Stmt>
+    subStatementDistinct;
+
+extern const internal::VariadicDynCastDistinctMatcher<RecordDecl, FieldDecl>
+    fieldDistinct;
+
+//----------------------------------------------------------------------------//
+// End Clog matchers
+//----------------------------------------------------------------------------//
+
+
 } // namespace ast_matchers
 } // namespace clang
 
