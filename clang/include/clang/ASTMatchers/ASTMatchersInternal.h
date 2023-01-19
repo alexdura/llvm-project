@@ -884,7 +884,7 @@ bool matchesMultipleInRange(MatcherIteratorT MatchersBegin,
   bool Match = false;
   for (auto I = Start; I != End; ++I) {
     BoundNodesTreeBuilder Result(*Builder);
-    Match |= MatchersBegin->matches(*I, Finder, &Result) &&
+    Match |= (*MatchersBegin)->matches(**I, Finder, &Result) &&
              matchesMultipleInRange(std::next(MatchersBegin), MatchersEnd,
                                     std::next(I), End, Finder, &Result);
   }
@@ -1349,14 +1349,23 @@ public:
 
 template<>
 struct ChildInfo<RecordDecl> {
-  template<typename IteratorU>
-  static IteratorU child_begin(const RecordDecl& Node) {
+  static RecordDecl::field_iterator child_begin(const RecordDecl& Node) {
     return Node.field_begin();
   }
 
-  template<typename IteratorU>
-  static IteratorU child_end(const RecordDecl& Node) {
+  static RecordDecl::field_iterator child_end(const RecordDecl& Node) {
     return Node.field_end();
+  }
+};
+
+template<>
+struct ChildInfo<CompoundStmt> {
+  static CompoundStmt::const_child_iterator child_begin(const CompoundStmt& Node) {
+    return Node.child_begin();
+  }
+
+  static CompoundStmt::const_child_iterator child_end(const CompoundStmt& Node) {
+    return Node.child_end();
   }
 };
 
@@ -1364,7 +1373,7 @@ struct ChildInfo<RecordDecl> {
 template <typename T, typename InnerT>
 BindableMatcher<T>
 makeDynCastDistinct(ArrayRef<const BindableMatcher<InnerT> *> InnerMatchers) {
-  return BindableMatcher<T>(SeqMatcher<T, InnerT>(InnerMatchers));
+  return BindableMatcher<T>(Matcher<T>(new SeqMatcher<T, InnerT>(InnerMatchers)));
 }
 
 /// A VariadicDynCastAllOfMatcher<SourceT, TargetT> object is a

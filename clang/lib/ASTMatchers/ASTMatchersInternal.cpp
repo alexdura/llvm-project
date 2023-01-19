@@ -1087,7 +1087,7 @@ const internal::VariadicDynCastAllOfMatcher<Decl, CXXDeductionGuideDecl>
 //
 const internal::VariadicDynCastDistinctMatcher<CompoundStmt, Stmt>
     subStatementDistinct;
-const internal::VariadicDynCastDistinctMatcher<RecordDecl, FieldDecl>
+const internal::VariadicDynCastDistinctMatcher<RecordDecl, Decl>
     fieldDistinct;
 
 } // end namespace ast_matchers
