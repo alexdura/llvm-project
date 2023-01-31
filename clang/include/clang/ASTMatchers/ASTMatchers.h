@@ -169,7 +169,15 @@ using AttrMatcher = internal::Matcher<Attr>;
 /// Usable as: Any Matcher
 inline internal::TrueMatcher anything() { return internal::TrueMatcher(); }
 
+//template<typename T>
+inline internal::BindableMatcher<Decl> banything() {
+  return internal::BindableMatcher<Decl>(internal::TrueMatcher());
+}
+
+
 /// Matches the top declaration context.
+///
+///
 ///
 /// Given
 /// \code

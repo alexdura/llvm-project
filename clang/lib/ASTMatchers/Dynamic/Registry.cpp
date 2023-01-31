@@ -596,6 +596,7 @@ RegistryMaps::RegistryMaps() {
   REGISTER_MATCHER(withInitializer);
   REGISTER_MATCHER(fieldDistinct);
   REGISTER_MATCHER(subStatementDistinct);
+  REGISTER_MATCHER(banything);
 }
 
 RegistryMaps::~RegistryMaps() = default;

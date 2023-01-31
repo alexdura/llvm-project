@@ -873,7 +873,7 @@ IteratorT matchesFirstInPointerRange(const MatcherT &Matcher, IteratorT Start,
 }
 
 template <typename MatcherIteratorT, typename IteratorT>
-bool matchesMultipleInRange(MatcherIteratorT MatchersBegin,
+bool matchesSequence(MatcherIteratorT MatchersBegin,
                             MatcherIteratorT MatchersEnd,
                             IteratorT Start, IteratorT End,
                             ASTMatchFinder *Finder,
@@ -890,7 +890,7 @@ bool matchesMultipleInRange(MatcherIteratorT MatchersBegin,
     BoundNodesTreeBuilder HeadResult(*Builder);
     if (MatchersBegin->matches(**I, Finder, &HeadResult)) {
       BoundNodesTreeBuilder TailResult(HeadResult);
-      if (matchesMultipleInRange(std::next(MatchersBegin), MatchersEnd,
+      if (matchesSequence(std::next(MatchersBegin), MatchersEnd,
                                  std::next(I), End, Finder, &TailResult)) {
         // Everything matches
         Root.addMatch(TailResult);
@@ -1362,7 +1362,7 @@ public:
   }
 
   bool matches(const T &Node, ASTMatchFinder *Finder, BoundNodesTreeBuilder *Builder) const override {
-    return matchesMultipleInRange(Matchers.begin(), Matchers.end(),
+    return matchesSequence(Matchers.begin(), Matchers.end(),
                                   ChildInfo<T>::child_begin(Node), ChildInfo<T>::child_end(Node),
                                   Finder, Builder);
   }
