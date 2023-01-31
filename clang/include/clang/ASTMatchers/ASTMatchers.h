@@ -8473,7 +8473,7 @@ AST_MATCHER_P(OMPExecutableDirective, isAllowedToContainClauseKind,
 extern const internal::VariadicDynCastDistinctMatcher<CompoundStmt, Stmt>
     subStatementDistinct;
 
-extern const internal::VariadicDynCastDistinctMatcher<RecordDecl, Decl>
+extern const internal::VariadicDynCastDistinctMatcher<RecordDecl, FieldDecl>
     fieldDistinct;
 
 //----------------------------------------------------------------------------//

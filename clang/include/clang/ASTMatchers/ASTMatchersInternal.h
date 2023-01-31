@@ -881,13 +881,28 @@ bool matchesMultipleInRange(MatcherIteratorT MatchersBegin,
   if (MatchersBegin == MatchersEnd)
     return true;
 
+
   bool Match = false;
+
+  BoundNodesTreeBuilder Root;
+
   for (auto I = Start; I != End; ++I) {
-    BoundNodesTreeBuilder Result(*Builder);
-    Match |= (*MatchersBegin)->matches(**I, Finder, &Result) &&
-             matchesMultipleInRange(std::next(MatchersBegin), MatchersEnd,
-                                    std::next(I), End, Finder, &Result);
+    BoundNodesTreeBuilder HeadResult(*Builder);
+    if (MatchersBegin->matches(**I, Finder, &HeadResult)) {
+      BoundNodesTreeBuilder TailResult(HeadResult);
+      if (matchesMultipleInRange(std::next(MatchersBegin), MatchersEnd,
+                                 std::next(I), End, Finder, &TailResult)) {
+        // Everything matches
+        Root.addMatch(TailResult);
+        Match = true;
+      }
+    }
+    // Match &= MatchersBegin->matches(**I, Finder, &Result) &&
+    //          matchesMultipleInRange(std::next(MatchersBegin), MatchersEnd,
+    //                                 std::next(I), End, Finder, &Result);
   }
+
+  *Builder = std::move(Root);
   return Match;
 }
 
@@ -1335,10 +1350,16 @@ template<typename U>
 
 template <typename T, typename InnerT>
 class SeqMatcher : public MatcherInterface<T> {
-  ArrayRef<const BindableMatcher<InnerT>*> Matchers;
+  SmallVector<Matcher<InnerT>> Matchers;
 
 public:
-  SeqMatcher(ArrayRef<const BindableMatcher<InnerT>*> InnerMatchers) : Matchers(InnerMatchers) {}
+  // using PI = llvm::pointee_iterator<typename ArrayRef<const Matcher<InnerT>*>::iterator>;
+
+  SeqMatcher(ArrayRef<const Matcher<InnerT>*> InnerMatchers) {
+    for (auto *IM : InnerMatchers) {
+      Matchers.emplace_back(*IM);
+    }
+  }
 
   bool matches(const T &Node, ASTMatchFinder *Finder, BoundNodesTreeBuilder *Builder) const override {
     return matchesMultipleInRange(Matchers.begin(), Matchers.end(),
@@ -1372,8 +1393,8 @@ struct ChildInfo<CompoundStmt> {
 
 template <typename T, typename InnerT>
 BindableMatcher<T>
-makeDynCastDistinct(ArrayRef<const BindableMatcher<InnerT> *> InnerMatchers) {
-  return BindableMatcher<T>(Matcher<T>(new SeqMatcher<T, InnerT>(InnerMatchers)));
+makeDynCastDistinct(ArrayRef<const Matcher<InnerT> *> InnerMatchers) {
+  return BindableMatcher<T>(new SeqMatcher<T, InnerT>(InnerMatchers));
 }
 
 /// A VariadicDynCastAllOfMatcher<SourceT, TargetT> object is a
@@ -1416,7 +1437,7 @@ public:
 ///
 template <typename SourceT, typename TargetT>
 class VariadicDynCastDistinctMatcher
-  : public VariadicFunction<BindableMatcher<SourceT>, BindableMatcher<TargetT>,
+  : public VariadicFunction<BindableMatcher<SourceT>, Matcher<TargetT>,
                             makeDynCastDistinct<SourceT, TargetT>> {
 public:
   VariadicDynCastDistinctMatcher() {}
