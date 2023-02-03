@@ -170,10 +170,21 @@ using AttrMatcher = internal::Matcher<Attr>;
 inline internal::TrueMatcher anything() { return internal::TrueMatcher(); }
 
 //template<typename T>
-inline internal::BindableMatcher<Decl> banything() {
+inline internal::BindableMatcher<Decl> bAnyDecl() {
   return internal::BindableMatcher<Decl>(internal::TrueMatcher());
 }
 
+inline internal::BindableMatcher<Stmt> bAnyStmt() {
+  return internal::BindableMatcher<Stmt>(internal::TrueMatcher());
+}
+
+inline internal::BindableMatcher<TypeLoc> bAnyTypeLoc() {
+  return internal::BindableMatcher<TypeLoc>(internal::TrueMatcher());
+}
+
+inline internal::BindableMatcher<QualType> bAnyQualType() {
+  return internal::BindableMatcher<QualType>(internal::TrueMatcher());
+}
 
 /// Matches the top declaration context.
 ///

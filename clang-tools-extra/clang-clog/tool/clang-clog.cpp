@@ -36,7 +36,8 @@ int main(int argc, const char **argv) {
     READ_COMMAND,
     PATTERN,
     CHILD,
-    EXIT
+    STR_ATTR,
+    PTR_ATTR,
   };
 
   Action NextAction = Action::READ_COMMAND;
@@ -76,14 +77,8 @@ int main(int argc, const char **argv) {
         llvm::outs() << NodeId << "[" << ChildIdx << "] = " << 0 << "\n";
       }
       break;
-
-    case Action::EXIT:
-      return 0;
     }
-
   }
 
-
   return 0;
-
 }
