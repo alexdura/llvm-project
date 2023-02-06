@@ -24,8 +24,6 @@ using namespace clang::ast_matchers::internal;
 namespace clang {
 namespace clog {
 bool ClangClog::init() {
-  llvm::errs() << "sizeof(DynTypedNode) = " << sizeof(DynTypedNode) << "\n";
-
   switch (Tool.buildASTs(ASTs)) {
   case 2:
     llvm::errs() << "Failed to build the ASTs for some of the files.";
@@ -39,27 +37,36 @@ bool ClangClog::init() {
   }
 }
 
-uint64_t ClangClog::registerMatcher(const std::string &Pattern, bool IsGlobal) {
+int64_t ClangClog::registerMatcher(const std::string &Pattern, bool IsGlobal) {
   StringRef PatRef = Pattern;
   Diagnostics Diag;
   auto Matcher = Parser::parseMatcherExpression(PatRef, &Diag);
 
   if (!Matcher)
-    return 0;
+    return -1;
 
-  auto Ret = MatcherIds.getId(*Matcher);
+  int64_t MatcherId = Matchers.size();
+
+  Matchers.push_back(*Matcher);
 
   if (IsGlobal) {
-    GlobalMatchers.push_back(Ret);
-    GlobalMatches.emplace_back();
-    GlobalCollectors.emplace_back(GlobalMatches.back());
-    GlobalFinder.addDynamicMatcher(*Matcher, &GlobalCollectors.back());
+    GlobalMatchers.insert(MatcherId);
   }
 
-  return Ret;
+  return MatcherId;
 }
 
 void ClangClog::runGlobalMatchers() {
+  MatchFinder GlobalFinder;
+
+  GlobalCollectors.reserve(GlobalMatchers.size());
+
+  for (int64_t MatchId : GlobalMatchers) {
+    GlobalCollectors.emplace_back(NodeToAST);
+    MatcherIdToCollector[MatchId] = &GlobalCollectors.back();
+    GlobalFinder.addDynamicMatcher(Matchers[MatchId], &GlobalCollectors.back());
+  }
+
   for (auto &AST : ASTs) {
     auto &Ctx = AST->getASTContext();
     Ctx.getParentMapContext().setTraversalKind(TK_IgnoreUnlessSpelledInSource);
@@ -67,29 +74,67 @@ void ClangClog::runGlobalMatchers() {
   }
 }
 
-std::vector<std::vector<uint64_t>> ClangClog::matchFromRoot(uint64_t MatcherId) {
-  auto It = std::find(GlobalMatchers.begin(), GlobalMatchers.end(), MatcherId);
-  if (It == GlobalMatchers.end())
-    return std::vector<std::vector<uint64_t>>();
+std::vector<std::vector<int64_t>> ClangClog::matchFromRoot(int64_t MatcherId) {
+  auto It = MatcherIdToCollector.find(MatcherId);
+  if (It == MatcherIdToCollector.end())
+    llvm_unreachable("Expecting a global matcher id.");
 
-  auto Index = It - GlobalMatchers.begin();
-
-
-  std::vector<std::vector<uint64_t>> Result;
-  for (auto &M : GlobalMatches[Index]) {
-
-    std::vector<uint64_t> Row;
-    for (auto &B : M.getMap()) {
-      // this relies on the fact that M.getMap() is a sorted map
-      auto NodeId = NodeIds.getId(B.second);
+  std::vector<std::vector<int64_t>> Result;
+  for (auto BN : It->second->Bindings) {
+    std::vector<int64_t> Row;
+    for (auto B : BN.getMap()) {
+      int64_t NodeId = NodeIds.getId(B.second);
       Row.push_back(NodeId);
     }
-
     Result.push_back(std::move(Row));
   }
 
   return Result;
 }
 
+std::vector<std::vector<int64_t>> ClangClog::matchFromNode(int64_t MatcherId, int64_t NodeId) {
+  auto Node = NodeIds.getEntry(NodeId);
+  auto It = NodeToAST.find(Node);
+  if (It == NodeToAST.end())
+    llvm_unreachable("Could not find ASTContext for node.");
+
+  auto *Context = It->second;
+  ast_matchers::MatchFinder Finder;
+
+  CollectBoundNodes Collector(NodeToAST);
+
+  Finder.addDynamicMatcher(Matchers[MatcherId], &Collector);
+
+  Finder.match(Node, *Context);
+
+  std::vector<std::vector<int64_t>> Result;
+  for (auto BN : Collector.Bindings) {
+    std::vector<int64_t> Row;
+    for (auto B : BN.getMap()) {
+      int64_t NodeId = NodeIds.getId(B.second);
+      Row.push_back(NodeId);
+    }
+    Result.push_back(std::move(Row));
+  }
+  return Result;
+}
+
+std::tuple<std::string, int64_t, int64_t, int64_t, int64_t> ClangClog::srcLocation(int64_t NodeId) const {
+  auto Node = NodeIds.getEntry(NodeId);
+  auto SR = Node.getSourceRange();
+  auto ASTIt = NodeToAST.find(Node);
+  if (ASTIt == NodeToAST.end())
+    llvm_unreachable("Could not find ASTContext for node.");
+
+  const FullSourceLoc &SrcLocBegin = ASTIt->second->getFullLoc(SR.getBegin());
+  const FullSourceLoc &SrcLocEnd = ASTIt->second->getFullLoc(SR.getEnd());
+
+  return std::make_tuple(SrcLocBegin.getFileEntry()->getName().str(),
+                         SrcLocBegin.getLineNumber(),
+                         SrcLocBegin.getColumnNumber(),
+                         SrcLocEnd.getLineNumber(),
+                         SrcLocEnd.getColumnNumber());
+
+}
 } // namespace clog
 } // namespace clang

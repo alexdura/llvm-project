@@ -58,9 +58,6 @@ int main(int argc, const char **argv) {
     case Action::PATTERN:
       NextAction = Action::READ_COMMAND;
       Matches.clear();
-      if (!clog.match(Line, Matches)) {
-        llvm::errs() << "Matching failed!";
-      }
       llvm::outs() << "Found " << Matches.size() << " matches.\n";
       break;
 
