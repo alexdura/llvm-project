@@ -119,7 +119,7 @@ std::vector<std::vector<int64_t>> ClangClog::matchFromNode(int64_t MatcherId, in
   return Result;
 }
 
-std::tuple<std::string, int64_t, int64_t, int64_t, int64_t> ClangClog::srcLocation(int64_t NodeId) const {
+ClangClog::Loc ClangClog::srcLocation(int64_t NodeId) const {
   auto Node = NodeIds.getEntry(NodeId);
   auto SR = Node.getSourceRange();
   auto ASTIt = NodeToAST.find(Node);
@@ -129,12 +129,50 @@ std::tuple<std::string, int64_t, int64_t, int64_t, int64_t> ClangClog::srcLocati
   const FullSourceLoc &SrcLocBegin = ASTIt->second->getFullLoc(SR.getBegin());
   const FullSourceLoc &SrcLocEnd = ASTIt->second->getFullLoc(SR.getEnd());
 
-  return std::make_tuple(SrcLocBegin.getFileEntry()->getName().str(),
-                         SrcLocBegin.getLineNumber(),
-                         SrcLocBegin.getColumnNumber(),
-                         SrcLocEnd.getLineNumber(),
-                         SrcLocEnd.getColumnNumber());
-
+  return Loc{SrcLocBegin.getFileEntry()->getName().str(),
+    SrcLocBegin.getLineNumber(),
+    SrcLocBegin.getColumnNumber(),
+    SrcLocEnd.getLineNumber(),
+    SrcLocEnd.getColumnNumber()
+  };
 }
+
+
+ClangClogBuilder::~ClangClogBuilder() {
+  for (unsigned I = 0; I < Argc; ++I) {
+    delete[] Argv[I];
+  }
+  delete[] Argv;
+}
+
+ClangClogBuilder::ClangClogBuilder(const std::vector<std::string> &Args) {
+  Argv = new const char*[Args.size() + 2];
+
+  Argv[0] = "clang-clog";
+  Argv[Args.size() + 1] = nullptr;
+
+  for (unsigned I = 0; I < Args.size(); ++I) {
+    char *Tmp = new char[Args[I].size() + 1];
+    std::memcpy(Tmp, Args[I].c_str(), Args[I].length() + 1);
+    Argv[I + 1] = Tmp;
+  }
+
+  Argc = Args.size() + 1;
+}
+
+ClangClog ClangClogBuilder::build() {
+  llvm::cl::OptionCategory ClangClogCategory("clang-clog options");
+
+  llvm::Expected<tooling::CommonOptionsParser> OptionsParser =
+    tooling::CommonOptionsParser::create(Argc, Argv, ClangClogCategory,
+                                         llvm::cl::OneOrMore);
+
+  if (!OptionsParser)
+    llvm_unreachable("Failed to parse options.");
+
+  return ClangClog(OptionsParser->getCompilations(),
+                   OptionsParser->getSourcePathList());
+}
+
 } // namespace clog
 } // namespace clang

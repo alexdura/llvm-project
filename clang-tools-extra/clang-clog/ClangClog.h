@@ -9,6 +9,7 @@
 #include "clang/ASTMatchers/Dynamic/Diagnostics.h"
 #include "clang/ASTMatchers/Dynamic/Parser.h"
 #include "llvm/Support/ErrorOr.h"
+#include "clang/Tooling/CommonOptionsParser.h"
 
 #pragma once
 
@@ -54,7 +55,15 @@ private:
   std::vector<std::unique_ptr<ASTUnit>> ASTs;
 
 public:
-  ClangClog(tooling::CompilationDatabase &CDB, const std::vector<std::string> &Srcs) :
+  struct Loc {
+    const std::string Filename;
+    const int64_t StartLine;
+    const int64_t StartCol;
+    const int64_t EndLine;
+    const int64_t EndCol;
+  };
+
+  ClangClog(const tooling::CompilationDatabase &CDB, const std::vector<std::string> &Srcs) :
     CDB(CDB), Srcs(Srcs), Tool(CDB, Srcs) {}
 
   bool init();
@@ -64,7 +73,7 @@ public:
   void runGlobalMatchers();
   std::vector<std::vector<int64_t>> matchFromRoot(int64_t MatcherId);
   std::vector<std::vector<int64_t>> matchFromNode(int64_t MatcherId, int64_t NodeId);
-  std::tuple<std::string, int64_t, int64_t, int64_t, int64_t> srcLocation(int64_t NodeId) const;
+  Loc srcLocation(int64_t NodeId) const;
   std::vector<int64_t> parent(const int64_t NodeId) const;
 
 private:
@@ -79,8 +88,19 @@ private:
   std::set<uint64_t> GlobalMatchers;
   std::map<int64_t, CollectBoundNodes*> MatcherIdToCollector;
   std::vector<CollectBoundNodes> GlobalCollectors;
-
-
 };
+
+class ClangClogBuilder {
+  // The whole purpose of this class is to hold the ownership of argc and argv
+  int Argc;
+  const char **Argv;
+  ~ClangClogBuilder();
+
+public:
+  ClangClogBuilder(const std::vector<std::string> &Args);
+  ClangClog build();
+};
+
+
 } // namespace clog
 } // namespace clang
