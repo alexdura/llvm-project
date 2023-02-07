@@ -24,3 +24,4 @@ clang_target_link_libraries(clangClog
   )
 
 add_subdirectory(tool)
+add_subdirectory(swig)

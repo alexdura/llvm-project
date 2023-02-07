@@ -160,7 +160,10 @@ ClangClogBuilder::ClangClogBuilder(const std::vector<std::string> &Args) {
   Argc = Args.size() + 1;
 }
 
-ClangClog ClangClogBuilder::build() {
+ClangClog* ClangClogBuilder::build() {
+  if (Instance)
+    return Instance;
+
   llvm::cl::OptionCategory ClangClogCategory("clang-clog options");
 
   llvm::Expected<tooling::CommonOptionsParser> OptionsParser =
@@ -170,8 +173,10 @@ ClangClog ClangClogBuilder::build() {
   if (!OptionsParser)
     llvm_unreachable("Failed to parse options.");
 
-  return ClangClog(OptionsParser->getCompilations(),
-                   OptionsParser->getSourcePathList());
+  Instance = new ClangClog(OptionsParser->getCompilations(),
+                           OptionsParser->getSourcePathList());
+
+  return Instance;
 }
 
 } // namespace clog

@@ -1,7 +1,7 @@
 %module clog
 
-%include "std_vector.i"
 %include "inttypes.i"
+%include "std_vector.i"
 %include "std_string.i"
 
 namespace std {
@@ -11,7 +11,7 @@ namespace std {
 }
 
 %{
-#include "ClangClog.h"
+#include "../ClangClog.h"
 %}
 
-%include "ClangClog.h"
+%include "../ClangClog.h"

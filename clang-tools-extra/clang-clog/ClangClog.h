@@ -1,3 +1,4 @@
+#include <cstdint>
 #include <vector>
 #include "clang/AST/ASTTypeTraits.h"
 #include "clang/Basic/PlistSupport.h"
@@ -39,42 +40,56 @@ class ClangClog {
     }
   };
 
-  struct CollectBoundNodes : ast_matchers::MatchFinder::MatchCallback {
-    std::vector<ast_matchers::BoundNodes> Bindings;
+  struct CollectBoundNodes : clang::ast_matchers::MatchFinder::MatchCallback {
+    std::vector<clang::ast_matchers::BoundNodes> Bindings;
     llvm::DenseMap<DynTypedNode, ASTContext*> &NodeToAST;
     CollectBoundNodes(llvm::DenseMap<DynTypedNode, ASTContext*> &NodeToAST) : NodeToAST(NodeToAST) {}
-    void run(const ast_matchers::MatchFinder::MatchResult &Result) override {
+    void run(const clang::ast_matchers::MatchFinder::MatchResult &Result) override {
       Bindings.push_back(Result.Nodes);
     }
   };
 
 private:
-  const tooling::CompilationDatabase &CDB;
+  const clang::tooling::CompilationDatabase &CDB;
   const std::vector<std::string> &Srcs;
-  tooling::ClangTool Tool;
+  clang::tooling::ClangTool Tool;
   std::vector<std::unique_ptr<ASTUnit>> ASTs;
 
 public:
   struct Loc {
-    const std::string Filename;
-    const int64_t StartLine;
-    const int64_t StartCol;
-    const int64_t EndLine;
-    const int64_t EndCol;
+    std::string Filename;
+    int64_t StartLine;
+    int64_t StartCol;
+    int64_t EndLine;
+    int64_t EndCol;
+  public:
+    Loc() : StartLine(0), StartCol(0), EndLine(0), EndCol(0) {}
+    Loc(const std::string &Filename,
+        int64_t StartLine,
+        int64_t StartCol,
+        int64_t EndLine,
+        int64_t EndCol) : Filename(Filename),
+                          StartLine(StartLine),
+                          StartCol(StartCol),
+                          EndLine(EndLine),
+                          EndCol(EndCol) {}
   };
 
-  ClangClog(const tooling::CompilationDatabase &CDB, const std::vector<std::string> &Srcs) :
+  ClangClog(const clang::tooling::CompilationDatabase &CDB, const std::vector<std::string> &Srcs) :
     CDB(CDB), Srcs(Srcs), Tool(CDB, Srcs) {}
 
+  //  ClangClog(ClangClog &&) = default;
+  //  ClangClog(const ClangClog &) = default;
+
+
   bool init();
-  bool match(const std::string &Pattern, std::vector<ast_matchers::BoundNodes> &Result) const;
 
   int64_t registerMatcher(const std::string &Matcher, bool IsGlobal);
   void runGlobalMatchers();
   std::vector<std::vector<int64_t>> matchFromRoot(int64_t MatcherId);
   std::vector<std::vector<int64_t>> matchFromNode(int64_t MatcherId, int64_t NodeId);
   Loc srcLocation(int64_t NodeId) const;
-  std::vector<int64_t> parent(const int64_t NodeId) const;
+  std::vector<int64_t> parent(const int64_t NodeId) const { llvm_unreachable("Unimplemented"); }
 
 private:
   // AST node <-> uint64_t map
@@ -84,7 +99,7 @@ private:
   llvm::DenseMap<DynTypedNode, ASTContext*> NodeToAST;
 
   // Matchers indexed by their Id
-  std::vector<ast_matchers::dynamic::DynTypedMatcher> Matchers;
+  std::vector<clang::ast_matchers::dynamic::DynTypedMatcher> Matchers;
   std::set<uint64_t> GlobalMatchers;
   std::map<int64_t, CollectBoundNodes*> MatcherIdToCollector;
   std::vector<CollectBoundNodes> GlobalCollectors;
@@ -94,11 +109,12 @@ class ClangClogBuilder {
   // The whole purpose of this class is to hold the ownership of argc and argv
   int Argc;
   const char **Argv;
+  ClangClog *Instance = nullptr;
   ~ClangClogBuilder();
 
 public:
   ClangClogBuilder(const std::vector<std::string> &Args);
-  ClangClog build();
+  ClangClog* build();
 };
 
 
