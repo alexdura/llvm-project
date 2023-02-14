@@ -110,10 +110,14 @@ class ClangClogBuilder {
   int Argc;
   const char **Argv;
   ClangClog *Instance = nullptr;
-  ~ClangClogBuilder();
+  tooling::CommonOptionsParser OptionsParser;
+
+  static const char **buildArgv(const std::vector<std::string> &Args);
+  static tooling::CommonOptionsParser buildOptionsParser(int Argc, const char **Argv);
 
 public:
   ClangClogBuilder(const std::vector<std::string> &Args);
+  ~ClangClogBuilder();
   ClangClog* build();
 };
 

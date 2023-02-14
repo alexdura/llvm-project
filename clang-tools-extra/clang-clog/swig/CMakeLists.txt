@@ -10,7 +10,7 @@ endif()
 include_directories(${JNI_INCLUDE_DIRS})
 
 add_custom_command(OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/clang-clog_wrap.cxx
-  COMMAND /usr/bin/swig4.0 -DSWIGWORDSIZE64 -java -c++ clang-clog.i
+  COMMAND /usr/bin/swig4.0 -DSWIGWORDSIZE64 -java -package clang.swig -c++ clang-clog.i
   DEPENDS clang-clog.i ${CMAKE_CURRENT_SOURCE_DIR}/../ClangClog.h
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
   )

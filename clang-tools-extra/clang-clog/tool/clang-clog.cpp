@@ -3,6 +3,7 @@
 #include "clang/Tooling/CommonOptionsParser.h"
 #include <iostream>
 #include <sstream>
+#include <vector>
 #include <ios>
 
 using namespace llvm;
@@ -11,70 +12,32 @@ using namespace clang::tooling;
 using namespace clang::ast_matchers;
 
 
-static cl::OptionCategory ClangClogCategory("clang-clog options");
-
 int main(int argc, const char **argv) {
   llvm::outs() << "Hello from clang-clog\n";
 
-  llvm::Expected<CommonOptionsParser> OptionsParser =
-      CommonOptionsParser::create(argc, argv, ClangClogCategory,
-                                  llvm::cl::OneOrMore);
+  if (argc < 2)
+    llvm::errs() << "Expecting exactly one argument.";
 
-  if (!OptionsParser) {
-    llvm::errs() << llvm::toString(OptionsParser.takeError());
-    return 1;
-  }
 
-  clog::ClangClog clog(OptionsParser->getCompilations(),
-                       OptionsParser->getSourcePathList());
+  clog::ClangClogBuilder builder{{std::string(argv[1])}};
 
-  if (!clog.init()) {
-    return 2;
-  }
+  clog::ClangClog *clog = builder.build();
 
-  enum class Action {
-    READ_COMMAND,
-    PATTERN,
-    CHILD,
-    STR_ATTR,
-    PTR_ATTR,
-  };
+  if (clog == nullptr)
+    return -1;
 
-  Action NextAction = Action::READ_COMMAND;
-  std::vector<BoundNodes> Matches;
+  clog->init();
 
-  for (std::string Line; std::getline(std::cin, Line); ) {
-    switch (NextAction) {
-    case Action::READ_COMMAND:
-      if (Line == "M") {
-        NextAction = Action::PATTERN;
-      } else if (Line == "C") {
-        NextAction = Action::CHILD;
-      } else {
-        return 0;
-      }
-      break;
+  int DeclMatcher = clog->registerMatcher("decl().bind(\"d\")", true);
 
-    case Action::PATTERN:
-      NextAction = Action::READ_COMMAND;
-      Matches.clear();
-      llvm::outs() << "Found " << Matches.size() << " matches.\n";
-      break;
+  clog->runGlobalMatchers();
 
-    case Action::CHILD:
-      NextAction = Action::READ_COMMAND;
-      {
-        std::stringstream Str(Line);
-        uint64_t NodeId = 0;
-        int ChildIdx;
+  const auto &Result = clog->matchFromRoot(DeclMatcher);
 
-        Str >> std::hex >> NodeId;
-        Str >> ChildIdx;
-
-        llvm::outs() << NodeId << "[" << ChildIdx << "] = " << 0 << "\n";
-      }
-      break;
-    }
+  for (const auto &Row : Result) {
+    for (auto Elem : Row)
+      llvm::dbgs() << Elem << " ";
+    llvm::dbgs() << "\n";
   }
 
   return 0;

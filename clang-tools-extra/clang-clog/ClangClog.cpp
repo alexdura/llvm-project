@@ -139,13 +139,44 @@ ClangClog::Loc ClangClog::srcLocation(int64_t NodeId) const {
 
 
 ClangClogBuilder::~ClangClogBuilder() {
-  for (unsigned I = 0; I < Argc; ++I) {
+  // Argv[I] is not new[]'d, so start from 1.
+  for (unsigned I = 1; I < Argc; ++I) {
     delete[] Argv[I];
   }
   delete[] Argv;
 }
 
-ClangClogBuilder::ClangClogBuilder(const std::vector<std::string> &Args) {
+const char **ClangClogBuilder::buildArgv(const std::vector<std::string> &Args) {
+  const char **Argv = new const char*[Args.size() + 2];
+
+  Argv[0] = "clang-clog";
+  Argv[Args.size() + 1] = nullptr;
+
+  for (unsigned I = 0; I < Args.size(); ++I) {
+    char *Tmp = new char[Args[I].size() + 1];
+    std::memcpy(Tmp, Args[I].c_str(), Args[I].length() + 1);
+    Argv[I + 1] = Tmp;
+  }
+
+  return Argv;
+}
+
+
+static llvm::cl::OptionCategory ClangClogCategory("clang-clog options");
+
+tooling::CommonOptionsParser ClangClogBuilder::buildOptionsParser(int Argc, const char **Argv) {
+  auto P = CommonOptionsParser::create(Argc, Argv, ClangClogCategory, llvm::cl::OneOrMore);
+  if (!P) {
+    llvm_unreachable("Ooops! Failed to build the OptionParser.");
+  }
+  return std::move(*P);
+}
+
+ClangClogBuilder::ClangClogBuilder(const std::vector<std::string> &Args) :
+  Argc(Args.size() + 1),
+  Argv(buildArgv(Args)),
+  OptionsParser(buildOptionsParser(Argc, Argv))
+{
   Argv = new const char*[Args.size() + 2];
 
   Argv[0] = "clang-clog";
@@ -160,21 +191,14 @@ ClangClogBuilder::ClangClogBuilder(const std::vector<std::string> &Args) {
   Argc = Args.size() + 1;
 }
 
+
+
 ClangClog* ClangClogBuilder::build() {
   if (Instance)
     return Instance;
 
-  llvm::cl::OptionCategory ClangClogCategory("clang-clog options");
-
-  llvm::Expected<tooling::CommonOptionsParser> OptionsParser =
-    tooling::CommonOptionsParser::create(Argc, Argv, ClangClogCategory,
-                                         llvm::cl::OneOrMore);
-
-  if (!OptionsParser)
-    llvm_unreachable("Failed to parse options.");
-
-  Instance = new ClangClog(OptionsParser->getCompilations(),
-                           OptionsParser->getSourcePathList());
+  Instance = new ClangClog(OptionsParser.getCompilations(),
+                           OptionsParser.getSourcePathList());
 
   return Instance;
 }
