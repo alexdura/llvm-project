@@ -35,8 +35,10 @@ int main(int argc, const char **argv) {
   const auto &Result = clog->matchFromRoot(DeclMatcher);
 
   for (const auto &Row : Result) {
-    for (auto Elem : Row)
+    for (auto Elem : Row) {
       llvm::dbgs() << Elem << " ";
+      clog::ClangClog::Loc SLoc = clog->srcLocation(Elem);
+    }
     llvm::dbgs() << "\n";
   }
 

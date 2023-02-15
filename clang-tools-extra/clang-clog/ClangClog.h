@@ -45,6 +45,9 @@ class ClangClog {
     llvm::DenseMap<DynTypedNode, ASTContext*> &NodeToAST;
     CollectBoundNodes(llvm::DenseMap<DynTypedNode, ASTContext*> &NodeToAST) : NodeToAST(NodeToAST) {}
     void run(const clang::ast_matchers::MatchFinder::MatchResult &Result) override {
+      for (auto Node : Result.Nodes.getMap())
+        NodeToAST.insert(std::make_pair(Node.second, Result.Context));
+
       Bindings.push_back(Result.Nodes);
     }
   };

@@ -95,8 +95,10 @@ std::vector<std::vector<int64_t>> ClangClog::matchFromRoot(int64_t MatcherId) {
 std::vector<std::vector<int64_t>> ClangClog::matchFromNode(int64_t MatcherId, int64_t NodeId) {
   auto Node = NodeIds.getEntry(NodeId);
   auto It = NodeToAST.find(Node);
-  if (It == NodeToAST.end())
-    llvm_unreachable("Could not find ASTContext for node.");
+  if (It == NodeToAST.end()) {
+    llvm::errs() << "Could not find ASTContext for node nodeId=" << NodeId << " .";
+    llvm_unreachable("Ooops!");
+  }
 
   auto *Context = It->second;
   ast_matchers::MatchFinder Finder;
@@ -129,12 +131,23 @@ ClangClog::Loc ClangClog::srcLocation(int64_t NodeId) const {
   const FullSourceLoc &SrcLocBegin = ASTIt->second->getFullLoc(SR.getBegin());
   const FullSourceLoc &SrcLocEnd = ASTIt->second->getFullLoc(SR.getEnd());
 
-  return Loc{SrcLocBegin.getFileEntry()->getName().str(),
-    SrcLocBegin.getLineNumber(),
-    SrcLocBegin.getColumnNumber(),
-    SrcLocEnd.getLineNumber(),
-    SrcLocEnd.getColumnNumber()
-  };
+  if (SrcLocBegin.isValid() && SrcLocEnd.isValid()) {
+    std::string FileName = "<UNKNOWN>";
+    if (const auto *FE = SrcLocBegin.getFileEntry()) {
+      FileName = FE->getName().str();
+    } else if (const auto *FE = SrcLocEnd.getFileEntry()) {
+      FileName = FE->getName().str();
+    }
+
+    return {FileName,
+      SrcLocBegin.getLineNumber(),
+      SrcLocBegin.getColumnNumber(),
+      SrcLocEnd.getLineNumber(),
+      SrcLocEnd.getColumnNumber()
+    };
+  }
+
+  return {"<UNKNOWN>", 0, 0, 0, 0};
 }
 
 
