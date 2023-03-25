@@ -42,8 +42,11 @@ int64_t ClangClog::registerMatcher(const std::string &Pattern, bool IsGlobal) {
   Diagnostics Diag;
   auto Matcher = Parser::parseMatcherExpression(PatRef, &Diag);
 
-  if (!Matcher)
+
+  if (!Matcher) {
+    Diag.printToStreamFull(llvm::errs());
     return -1;
+  }
 
   int64_t MatcherId = Matchers.size();
 
@@ -76,8 +79,11 @@ void ClangClog::runGlobalMatchers() {
 
 std::vector<std::vector<int64_t>> ClangClog::matchFromRoot(int64_t MatcherId) {
   auto It = MatcherIdToCollector.find(MatcherId);
-  if (It == MatcherIdToCollector.end())
+  if (It == MatcherIdToCollector.end()) {
+    llvm::errs() << "Expecting a global matcher id, but got " << MatcherId << "\n";
     llvm_unreachable("Expecting a global matcher id.");
+
+  }
 
   std::vector<std::vector<int64_t>> Result;
   for (auto BN : It->second->Bindings) {
