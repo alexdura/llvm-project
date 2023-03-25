@@ -4815,6 +4815,16 @@ AST_POLYMORPHIC_MATCHER_P2(hasParameter,
           && InnerMatcher.matches(*Node.parameters()[N], Finder, Builder));
 }
 
+AST_MATCHER_P2(FunctionProtoType, hasParameterType, unsigned, N, internal::Matcher<QualType>,
+               InnerMatcher) {
+  return (N < Node.getNumParams()) &&
+    InnerMatcher.matches(Node.getParamType(N), Finder, Builder);
+}
+
+AST_MATCHER_P(FunctionType, hasReturnType, internal::Matcher<QualType>, InnerMatcher) {
+  return InnerMatcher.matches(Node.getReturnType(), Finder, Builder);
+}
+
 /// Matches all arguments and their respective ParmVarDecl.
 ///
 /// Given

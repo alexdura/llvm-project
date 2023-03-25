@@ -600,6 +600,8 @@ RegistryMaps::RegistryMaps() {
   REGISTER_MATCHER(bAnyDecl);
   REGISTER_MATCHER(bAnyStmt);
   REGISTER_MATCHER(bAnyTypeLoc);
+  REGISTER_MATCHER(hasParameterType);
+  REGISTER_MATCHER(hasReturnType);
 }
 
 RegistryMaps::~RegistryMaps() = default;
