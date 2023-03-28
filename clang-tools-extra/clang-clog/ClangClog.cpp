@@ -37,7 +37,7 @@ bool ClangClog::init() {
   }
 }
 
-int64_t ClangClog::registerMatcher(const std::string &Pattern, bool IsGlobal) {
+i64 ClangClog::registerMatcher(const std::string &Pattern, bool IsGlobal) {
   StringRef PatRef = Pattern;
   Diagnostics Diag;
   auto Matcher = Parser::parseMatcherExpression(PatRef, &Diag);
@@ -48,7 +48,7 @@ int64_t ClangClog::registerMatcher(const std::string &Pattern, bool IsGlobal) {
     return -1;
   }
 
-  int64_t MatcherId = Matchers.size();
+  i64 MatcherId = Matchers.size();
 
   Matchers.push_back(*Matcher);
 
@@ -64,7 +64,7 @@ void ClangClog::runGlobalMatchers() {
 
   GlobalCollectors.reserve(GlobalMatchers.size());
 
-  for (int64_t MatchId : GlobalMatchers) {
+  for (i64 MatchId : GlobalMatchers) {
     GlobalCollectors.emplace_back(NodeToAST);
     MatcherIdToCollector[MatchId] = &GlobalCollectors.back();
     GlobalFinder.addDynamicMatcher(Matchers[MatchId], &GlobalCollectors.back());
@@ -77,7 +77,7 @@ void ClangClog::runGlobalMatchers() {
   }
 }
 
-std::vector<std::vector<int64_t>> ClangClog::matchFromRoot(int64_t MatcherId) {
+std::vector<std::vector<i64>> ClangClog::matchFromRoot(i64 MatcherId) {
   auto It = MatcherIdToCollector.find(MatcherId);
   if (It == MatcherIdToCollector.end()) {
     llvm::errs() << "Expecting a global matcher id, but got " << MatcherId << "\n";
@@ -85,11 +85,11 @@ std::vector<std::vector<int64_t>> ClangClog::matchFromRoot(int64_t MatcherId) {
 
   }
 
-  std::vector<std::vector<int64_t>> Result;
+  std::vector<std::vector<i64>> Result;
   for (auto BN : It->second->Bindings) {
-    std::vector<int64_t> Row;
+    std::vector<i64> Row;
     for (auto B : BN.getMap()) {
-      int64_t NodeId = NodeIds.getId(B.second);
+      i64 NodeId = NodeIds.getId(B.second);
       Row.push_back(NodeId);
     }
     Result.push_back(std::move(Row));
@@ -98,7 +98,7 @@ std::vector<std::vector<int64_t>> ClangClog::matchFromRoot(int64_t MatcherId) {
   return Result;
 }
 
-std::vector<std::vector<int64_t>> ClangClog::matchFromNode(int64_t MatcherId, int64_t NodeId) {
+std::vector<std::vector<i64>> ClangClog::matchFromNode(i64 MatcherId, i64 NodeId) {
   auto Node = NodeIds.getEntry(NodeId);
   auto It = NodeToAST.find(Node);
   if (It == NodeToAST.end()) {
@@ -115,11 +115,11 @@ std::vector<std::vector<int64_t>> ClangClog::matchFromNode(int64_t MatcherId, in
 
   Finder.match(Node, *Context);
 
-  std::vector<std::vector<int64_t>> Result;
+  std::vector<std::vector<i64>> Result;
   for (auto BN : Collector.Bindings) {
-    std::vector<int64_t> Row;
+    std::vector<i64> Row;
     for (auto B : BN.getMap()) {
-      int64_t NodeId = NodeIds.getId(B.second);
+      i64 NodeId = NodeIds.getId(B.second);
       Row.push_back(NodeId);
     }
     Result.push_back(std::move(Row));
@@ -127,7 +127,7 @@ std::vector<std::vector<int64_t>> ClangClog::matchFromNode(int64_t MatcherId, in
   return Result;
 }
 
-ClangClog::Loc ClangClog::srcLocation(int64_t NodeId) const {
+ClangClog::Loc ClangClog::srcLocation(i64 NodeId) const {
   auto Node = NodeIds.getEntry(NodeId);
   auto SR = Node.getSourceRange();
   auto ASTIt = NodeToAST.find(Node);

@@ -5,9 +5,9 @@
 %include "std_string.i"
 
 namespace std {
-	  %template(VectorLong) std::vector<int64_t>;
-	  %template(VectorVectorLong) std::vector<std::vector<int64_t>>;
-	  %template(VectorString) std::vector<std::string>;
+  %template(VectorLong) std::vector<long long>;
+  %template(VectorVectorLong) std::vector<std::vector<long long>>;
+  %template(VectorString) std::vector<std::string>;
 }
 
 %{

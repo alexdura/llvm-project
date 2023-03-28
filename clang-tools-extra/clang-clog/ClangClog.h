@@ -16,15 +16,23 @@
 
 namespace clang {
 namespace clog {
+
+using i64 = signed long long int;
+static_assert(sizeof(i64) == 8);
+using u64 = unsigned long long int;
+static_assert(sizeof(u64) == 8);
+
+
+
 class ClangClog {
   template<typename T> class IdMap {
-    mutable llvm::DenseMap<T, int64_t> TToIdMap;
+    mutable llvm::DenseMap<T, i64> TToIdMap;
     mutable std::vector<T> IdToTMap;
   public:
-    int64_t getId(const T& Node) const {
+    i64 getId(const T& Node) const {
       auto It = TToIdMap.find(Node);
       if (It == TToIdMap.end()) {
-        int64_t NodeId = IdToTMap.size();
+        i64 NodeId = IdToTMap.size();
         TToIdMap[Node] = NodeId;
         IdToTMap.push_back(Node);
         return NodeId + 1; // Return a NodeId offset by 1
@@ -33,9 +41,9 @@ class ClangClog {
       return It->second + 1; // Return a NodeId offset by 1
     }
 
-    const T& getEntry(int64_t Id) const {
+    const T& getEntry(i64 Id) const {
       assert (Id > 0);
-      assert (Id <= (int64_t) IdToTMap.size());
+      assert (Id <= (i64) IdToTMap.size());
       return IdToTMap[Id - 1]; // External NodeId are offset by 1, to avoid having 0 as a NodeId
     }
   };
@@ -61,17 +69,17 @@ private:
 public:
   struct Loc {
     std::string Filename;
-    int64_t StartLine;
-    int64_t StartCol;
-    int64_t EndLine;
-    int64_t EndCol;
+    i64 StartLine;
+    i64 StartCol;
+    i64 EndLine;
+    i64 EndCol;
   public:
     Loc() : StartLine(0), StartCol(0), EndLine(0), EndCol(0) {}
     Loc(const std::string &Filename,
-        int64_t StartLine,
-        int64_t StartCol,
-        int64_t EndLine,
-        int64_t EndCol) : Filename(Filename),
+        i64 StartLine,
+        i64 StartCol,
+        i64 EndLine,
+        i64 EndCol) : Filename(Filename),
                           StartLine(StartLine),
                           StartCol(StartCol),
                           EndLine(EndLine),
@@ -87,15 +95,15 @@ public:
 
   bool init();
 
-  int64_t registerMatcher(const std::string &Matcher, bool IsGlobal);
+  i64 registerMatcher(const std::string &Matcher, bool IsGlobal);
   void runGlobalMatchers();
-  std::vector<std::vector<int64_t>> matchFromRoot(int64_t MatcherId);
-  std::vector<std::vector<int64_t>> matchFromNode(int64_t MatcherId, int64_t NodeId);
-  Loc srcLocation(int64_t NodeId) const;
-  std::vector<int64_t> parent(const int64_t NodeId) const { llvm_unreachable("Unimplemented"); }
+  std::vector<std::vector<i64>> matchFromRoot(i64 MatcherId);
+  std::vector<std::vector<i64>> matchFromNode(i64 MatcherId, i64 NodeId);
+  Loc srcLocation(i64 NodeId) const;
+  std::vector<i64> parent(const i64 NodeId) const { llvm_unreachable("Unimplemented"); }
 
 private:
-  // AST node <-> uint64_t map
+  // AST node <-> u64 map
   IdMap<DynTypedNode> NodeIds;
 
   // Map AST nodes to their AST context; Used for running local matchers
@@ -103,8 +111,8 @@ private:
 
   // Matchers indexed by their Id
   std::vector<clang::ast_matchers::dynamic::DynTypedMatcher> Matchers;
-  std::set<uint64_t> GlobalMatchers;
-  std::map<int64_t, CollectBoundNodes*> MatcherIdToCollector;
+  std::set<u64> GlobalMatchers;
+  std::map<i64, CollectBoundNodes*> MatcherIdToCollector;
   std::vector<CollectBoundNodes> GlobalCollectors;
 };
 
