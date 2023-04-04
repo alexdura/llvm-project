@@ -7625,6 +7625,22 @@ AST_MATCHER_P(SwitchStmt, forEachSwitchCase, internal::Matcher<SwitchCase>,
   return Matched;
 }
 
+/// Matches the body statement of a switch statement.
+AST_MATCHER_P(SwitchStmt, hasSwitchBody, internal::Matcher<Stmt>, InnerMatcher) {
+  const Stmt *const Sub = Node.getBody();
+  return (Sub != nullptr && InnerMatcher.matches(*Sub, Finder, Builder));
+}
+
+
+AST_POLYMORPHIC_MATCHER_P(
+    hasSubStmt,
+    AST_POLYMORPHIC_SUPPORTED_TYPES(CaseStmt, DefaultStmt),
+    internal::Matcher<Stmt>, Inner) {
+  const Stmt *const Sub = Node.getSubStmt();
+  return (Sub != nullptr && Inner.matches(*Sub, Finder, Builder));
+}
+
+
 /// Matches each constructor initializer in a constructor definition.
 ///
 /// Given

@@ -602,6 +602,9 @@ RegistryMaps::RegistryMaps() {
   REGISTER_MATCHER(bAnyTypeLoc);
   REGISTER_MATCHER(hasParameterType);
   REGISTER_MATCHER(hasReturnType);
+  REGISTER_MATCHER(hasSwitchBody);
+  REGISTER_MATCHER(hasSubStmt);
+
 }
 
 RegistryMaps::~RegistryMaps() = default;
