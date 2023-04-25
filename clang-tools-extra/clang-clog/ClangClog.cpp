@@ -2,6 +2,7 @@
 #include <string>
 #include <iterator>
 #include <vector>
+#include "clang/AST/Expr.h"
 #include "clang/Tooling/Tooling.h"
 #include "clang/Tooling/CompilationDatabase.h"
 #include "clang/Frontend/ASTUnit.h"
@@ -156,6 +157,33 @@ ClangClog::Loc ClangClog::srcLocation(i64 NodeId) const {
   return {"<UNKNOWN>", 0, 0, 0, 0};
 }
 
+i64 ClangClog::type(i64 NodeId) {
+  auto Node = NodeIds.getEntry(NodeId);
+  auto ASTIt = NodeToAST.find(Node);
+  if (ASTIt == NodeToAST.end())
+    llvm_unreachable("Could not find ASTContext for node.");
+
+  if (const auto *E = Node.get<Expr>()) {
+    const auto &T = E->getType();
+    return NodeIds.getId(DynTypedNode::create(T));
+  }
+  return 0;
+}
+
+i64 ClangClog::decl(i64 NodeId) {
+  auto Node = NodeIds.getEntry(NodeId);
+  auto ASTIt = NodeToAST.find(Node);
+  if (ASTIt == NodeToAST.end())
+    llvm_unreachable("Could not find ASTContext for node.");
+
+  if (const auto *DeclRef = Node.get<DeclRefExpr>()) {
+    const NamedDecl *D = DeclRef->getFoundDecl();
+    if (D) {
+      return NodeIds.getId(DynTypedNode::create(*D));
+    }
+  }
+  return 0;
+}
 
 ClangClogBuilder::~ClangClogBuilder() {
   // Argv[I] is not new[]'d, so start from 1.

@@ -100,6 +100,8 @@ public:
   std::vector<std::vector<i64>> matchFromRoot(i64 MatcherId);
   std::vector<std::vector<i64>> matchFromNode(i64 MatcherId, i64 NodeId);
   Loc srcLocation(i64 NodeId) const;
+  i64 type(i64 NodeId);
+  i64 decl(i64 NodeId);
   std::vector<i64> parent(const i64 NodeId) const { llvm_unreachable("Unimplemented"); }
 
 private:
