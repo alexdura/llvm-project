@@ -1390,6 +1390,17 @@ struct ChildInfo<CompoundStmt> {
   }
 };
 
+template <>
+struct ChildInfo<DeclStmt> {
+  static DeclStmt::const_decl_iterator child_begin(const DeclStmt& Node) {
+    return Node.decl_begin();
+  }
+
+  static DeclStmt::const_decl_iterator child_end(const DeclStmt& Node) {
+    return Node.decl_end();
+  }
+};
+
 
 template <typename T, typename InnerT>
 BindableMatcher<T>

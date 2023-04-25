@@ -730,6 +730,11 @@ AST_MATCHER_P(FieldDecl, hasBitWidth, unsigned, Width) {
          Node.getBitWidthValue(Finder->getASTContext()) == Width;
 }
 
+AST_MATCHER_P(FieldDecl, hasBitWidthExpr, internal::Matcher<Expr>, Width) {
+  return Node.isBitField() &&
+    Width.matches(*Node.getBitWidth(), Finder, Builder);
+}
+
 /// Matches non-static data members that have an in-class initializer.
 ///
 /// Given
@@ -8520,6 +8525,9 @@ extern const internal::VariadicDynCastDistinctMatcher<CompoundStmt, Stmt>
 
 extern const internal::VariadicDynCastDistinctMatcher<RecordDecl, FieldDecl>
     fieldDistinct;
+
+extern const internal::VariadicDynCastDistinctMatcher<DeclStmt, Decl>
+    declDistinct;
 
 //----------------------------------------------------------------------------//
 // End Clog matchers

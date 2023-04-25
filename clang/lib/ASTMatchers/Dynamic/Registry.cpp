@@ -597,6 +597,7 @@ RegistryMaps::RegistryMaps() {
 
   REGISTER_MATCHER(fieldDistinct);
   REGISTER_MATCHER(subStatementDistinct);
+  REGISTER_MATCHER(declDistinct);
   REGISTER_MATCHER(bAnyDecl);
   REGISTER_MATCHER(bAnyStmt);
   REGISTER_MATCHER(bAnyTypeLoc);
@@ -604,6 +605,7 @@ RegistryMaps::RegistryMaps() {
   REGISTER_MATCHER(hasReturnType);
   REGISTER_MATCHER(hasSwitchBody);
   REGISTER_MATCHER(hasSubStmt);
+  REGISTER_MATCHER(hasBitWidthExpr);
 
 }
 
