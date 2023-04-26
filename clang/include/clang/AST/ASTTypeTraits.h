@@ -388,6 +388,11 @@ public:
                                   NNSL.getOpaqueData());
       }
 
+      if (ASTNodeKind::getFromNodeKind<QualType>().isSame(Val.NodeKind)) {
+        auto QT = Val.getUnchecked<QualType>();
+        return llvm::hash_value(QT.getAsOpaquePtr());
+      }
+
       assert(Val.getMemoizationData());
       return llvm::hash_value(Val.getMemoizationData());
     }

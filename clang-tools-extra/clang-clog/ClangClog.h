@@ -65,6 +65,10 @@ private:
   const std::vector<std::string> &Srcs;
   clang::tooling::ClangTool Tool;
   std::vector<std::unique_ptr<ASTUnit>> ASTs;
+  IntrusiveRefCntPtr<DiagnosticOptions> DiagOpts;
+  DiagnosticsEngine DiagEngine;
+
+  const SourceManager SM;
 
 public:
   struct Loc {
@@ -87,7 +91,10 @@ public:
   };
 
   ClangClog(const clang::tooling::CompilationDatabase &CDB, const std::vector<std::string> &Srcs) :
-    CDB(CDB), Srcs(Srcs), Tool(CDB, Srcs) {}
+    CDB(CDB), Srcs(Srcs), Tool(CDB, Srcs),
+    DiagOpts(new DiagnosticOptions()),
+    DiagEngine(IntrusiveRefCntPtr<DiagnosticIDs>(new DiagnosticIDs()), DiagOpts.get()),
+    SM(DiagEngine, Tool.getFiles()) {}
 
   //  ClangClog(ClangClog &&) = default;
   //  ClangClog(const ClangClog &) = default;

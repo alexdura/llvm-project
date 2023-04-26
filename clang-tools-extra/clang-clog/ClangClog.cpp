@@ -132,25 +132,23 @@ ClangClog::Loc ClangClog::srcLocation(i64 NodeId) const {
   auto Node = NodeIds.getEntry(NodeId);
   auto SR = Node.getSourceRange();
   auto ASTIt = NodeToAST.find(Node);
-  if (ASTIt == NodeToAST.end())
+  if (ASTIt == NodeToAST.end()) {
+    llvm::errs() << "Could not find ASTContext for node id " << NodeId << "\n";
     llvm_unreachable("Could not find ASTContext for node.");
+  }
+
+  const auto &SM = ASTIt->second->getSourceManager();
 
   const FullSourceLoc &SrcLocBegin = ASTIt->second->getFullLoc(SR.getBegin());
   const FullSourceLoc &SrcLocEnd = ASTIt->second->getFullLoc(SR.getEnd());
 
   if (SrcLocBegin.isValid() && SrcLocEnd.isValid()) {
-    std::string FileName = "<UNKNOWN>";
-    if (const auto *FE = SrcLocBegin.getFileEntry()) {
-      FileName = FE->getName().str();
-    } else if (const auto *FE = SrcLocEnd.getFileEntry()) {
-      FileName = FE->getName().str();
-    }
-
-    return {FileName,
-      SrcLocBegin.getLineNumber(),
-      SrcLocBegin.getColumnNumber(),
-      SrcLocEnd.getLineNumber(),
-      SrcLocEnd.getColumnNumber()
+    return {
+      SM.getBufferName(SR.getBegin()).str(),
+      SM.getExpansionLineNumber(SR.getBegin()),
+      SM.getExpansionColumnNumber(SR.getEnd()),
+      SM.getExpansionLineNumber(SR.getBegin()),
+      SM.getExpansionColumnNumber(SR.getEnd())
     };
   }
 
@@ -160,11 +158,14 @@ ClangClog::Loc ClangClog::srcLocation(i64 NodeId) const {
 i64 ClangClog::type(i64 NodeId) {
   auto Node = NodeIds.getEntry(NodeId);
   auto ASTIt = NodeToAST.find(Node);
-  if (ASTIt == NodeToAST.end())
-    llvm_unreachable("Could not find ASTContext for node.");
+  if (ASTIt == NodeToAST.end()) {
+    return 0;
+  }
 
   if (const auto *E = Node.get<Expr>()) {
     const auto &T = E->getType();
+    auto DynNode = DynTypedNode::create(T);
+    NodeToAST.insert(std::make_pair(DynNode, ASTIt->getSecond()));
     return NodeIds.getId(DynTypedNode::create(T));
   }
   return 0;
@@ -172,13 +173,12 @@ i64 ClangClog::type(i64 NodeId) {
 
 i64 ClangClog::decl(i64 NodeId) {
   auto Node = NodeIds.getEntry(NodeId);
-  auto ASTIt = NodeToAST.find(Node);
-  if (ASTIt == NodeToAST.end())
-    llvm_unreachable("Could not find ASTContext for node.");
 
   if (const auto *DeclRef = Node.get<DeclRefExpr>()) {
     const NamedDecl *D = DeclRef->getFoundDecl();
     if (D) {
+      auto DynNode = DynTypedNode::create(*D);
+      NodeToAST.insert(std::make_pair(DynNode, &D->getASTContext()));
       return NodeIds.getId(DynTypedNode::create(*D));
     }
   }
