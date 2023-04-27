@@ -146,8 +146,8 @@ ClangClog::Loc ClangClog::srcLocation(i64 NodeId) const {
     return {
       SM.getBufferName(SR.getBegin()).str(),
       SM.getExpansionLineNumber(SR.getBegin()),
-      SM.getExpansionColumnNumber(SR.getEnd()),
-      SM.getExpansionLineNumber(SR.getBegin()),
+      SM.getExpansionColumnNumber(SR.getBegin()),
+      SM.getExpansionLineNumber(SR.getEnd()),
       SM.getExpansionColumnNumber(SR.getEnd())
     };
   }
