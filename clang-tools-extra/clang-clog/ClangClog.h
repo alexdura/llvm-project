@@ -110,6 +110,8 @@ public:
   i64 type(i64 NodeId);
   i64 decl(i64 NodeId);
   std::vector<i64> parent(const i64 NodeId) const { llvm_unreachable("Unimplemented"); }
+  bool isParent(const i64 ParentId, const i64 NodeId);
+  bool isAncestor(const i64 AncestorId, const i64 NodeId);
 
 private:
   // AST node <-> u64 map

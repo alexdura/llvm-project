@@ -185,6 +185,46 @@ i64 ClangClog::decl(i64 NodeId) {
   return 0;
 }
 
+bool ClangClog::isParent(const i64 ParentId, const i64 NodeId) {
+  auto Node = NodeIds.getEntry(NodeId);
+  auto It = NodeToAST.find(Node);
+  if (It == NodeToAST.end()) {
+    llvm::errs() << "Could not find ASTContext for node nodeId=" << NodeId << ".";
+    llvm_unreachable("Ooops!");
+  }
+
+  auto ParentNode = NodeIds.getEntry(ParentId);
+
+  for (const auto &ParentCandidate : It->getSecond()->getParents(Node)) {
+    if (ParentNode == ParentCandidate)
+      return true;
+  }
+  return false;
+}
+
+static bool isAncestorHelper(DynTypedNode Ancestor, DynTypedNode Node, ASTContext &Ctx) {
+  for (const auto &Parent : Ctx.getParents(Node)) {
+    if (Ancestor == Parent)
+      return true;
+    if (isAncestorHelper(Ancestor, Parent, Ctx))
+      return true;
+  }
+  return false;
+}
+
+bool ClangClog::isAncestor(const i64 AncestorId, const i64 NodeId) {
+  auto Node = NodeIds.getEntry(NodeId);
+  auto It = NodeToAST.find(Node);
+  if (It == NodeToAST.end()) {
+    llvm::errs() << "Could not find ASTContext for node nodeId=" << NodeId << ".";
+    llvm_unreachable("Ooops!");
+  }
+
+  auto AncestorNode = NodeIds.getEntry(AncestorId);
+
+  return isAncestorHelper(AncestorNode, Node, *It->getSecond());
+}
+
 ClangClogBuilder::~ClangClogBuilder() {
   // Argv[I] is not new[]'d, so start from 1.
   for (unsigned I = 1; I < Argc; ++I) {
