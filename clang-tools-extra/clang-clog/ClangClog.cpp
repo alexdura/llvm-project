@@ -225,6 +225,16 @@ bool ClangClog::isAncestor(const i64 AncestorId, const i64 NodeId) {
   return isAncestorHelper(AncestorNode, Node, *It->getSecond());
 }
 
+std::string ClangClog::name(const i64 NodeId) {
+  auto Node = NodeIds.getEntry(NodeId);
+  if (const auto *ND = Node.get<NamedDecl>()) {
+    return ND->getNameAsString();
+  } else if (const auto *R = Node.get<DeclRefExpr>()) {
+    return R->getDecl()->getNameAsString();
+  }
+  return "";
+}
+
 ClangClogBuilder::~ClangClogBuilder() {
   // Argv[I] is not new[]'d, so start from 1.
   for (unsigned I = 1; I < Argc; ++I) {
