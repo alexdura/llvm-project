@@ -5984,7 +5984,8 @@ AST_POLYMORPHIC_MATCHER(isDefinition,
 ///   template <typename... Ts> void h(Ts...);
 ///   void i();
 /// \endcode
-AST_MATCHER(FunctionDecl, isVariadic) {
+AST_POLYMORPHIC_MATCHER(isVariadic,
+                        AST_POLYMORPHIC_SUPPORTED_TYPES(FunctionDecl, FunctionProtoType)) {
   return Node.isVariadic();
 }
 
@@ -8528,6 +8529,13 @@ extern const internal::VariadicDynCastDistinctMatcher<RecordDecl, FieldDecl>
 
 extern const internal::VariadicDynCastDistinctMatcher<DeclStmt, Decl>
     declDistinct;
+
+extern const internal::VariadicDynCastDistinctMatcher<FunctionProtoType, QualType>
+    paramTypeDistinct;
+
+extern const internal::VariadicDynCastDistinctMatcher<FunctionDecl, ParmVarDecl>
+    paramDeclDistinct;
+
 
 //----------------------------------------------------------------------------//
 // End Clog matchers

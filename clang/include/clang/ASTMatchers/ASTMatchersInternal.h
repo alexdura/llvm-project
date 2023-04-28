@@ -872,12 +872,45 @@ IteratorT matchesFirstInPointerRange(const MatcherT &Matcher, IteratorT Start,
   return End;
 }
 
+template <typename MatcherIteratorT>
+bool matchesSequence(MatcherIteratorT MatchersBegin,
+                     MatcherIteratorT MatchersEnd,
+                     FunctionProtoType::param_type_iterator Start,
+                     FunctionProtoType::param_type_iterator End,
+                     ASTMatchFinder *Finder,
+                     BoundNodesTreeBuilder *Builder) {
+  if (MatchersBegin == MatchersEnd)
+    return true;
+
+
+  bool Match = false;
+
+  BoundNodesTreeBuilder Root;
+
+  for (const auto *I = Start; I != End; ++I) {
+    BoundNodesTreeBuilder HeadResult(*Builder);
+    if (MatchersBegin->matches(*I, Finder, &HeadResult)) {
+      BoundNodesTreeBuilder TailResult(HeadResult);
+      if (matchesSequence(std::next(MatchersBegin), MatchersEnd,
+                                 std::next(I), End, Finder, &TailResult)) {
+        // Everything matches
+        Root.addMatch(TailResult);
+        Match = true;
+      }
+    }
+  }
+
+  *Builder = std::move(Root);
+  return Match;
+}
+
+
 template <typename MatcherIteratorT, typename IteratorT>
 bool matchesSequence(MatcherIteratorT MatchersBegin,
-                            MatcherIteratorT MatchersEnd,
-                            IteratorT Start, IteratorT End,
-                            ASTMatchFinder *Finder,
-                            BoundNodesTreeBuilder *Builder) {
+                     MatcherIteratorT MatchersEnd,
+                     IteratorT Start, IteratorT End,
+                     ASTMatchFinder *Finder,
+                     BoundNodesTreeBuilder *Builder) {
   if (MatchersBegin == MatchersEnd)
     return true;
 
@@ -897,9 +930,6 @@ bool matchesSequence(MatcherIteratorT MatchersBegin,
         Match = true;
       }
     }
-    // Match &= MatchersBegin->matches(**I, Finder, &Result) &&
-    //          matchesMultipleInRange(std::next(MatchersBegin), MatchersEnd,
-    //                                 std::next(I), End, Finder, &Result);
   }
 
   *Builder = std::move(Root);
@@ -1336,16 +1366,16 @@ makeDynCastAllOfComposite(ArrayRef<const Matcher<InnerT> *> InnerMatchers) {
 
 
 template<typename U>
-  struct ChildInfo {
-    template<typename IteratorU>
-    static IteratorU child_begin(const U& Node) {
-      return Node.child_begin();
-    }
+struct ChildInfo {
+  template<typename IteratorU>
+  static IteratorU child_begin(const U& Node) {
+    return Node.child_begin();
+  }
 
-    template<typename IteratorU>
-    static IteratorU child_end(const U& Node) {
-      return Node.child_end();
-    }
+  template<typename IteratorU>
+  static IteratorU child_end(const U& Node) {
+    return Node.child_end();
+  }
 };
 
 template <typename T, typename InnerT>
@@ -1398,6 +1428,28 @@ struct ChildInfo<DeclStmt> {
 
   static DeclStmt::const_decl_iterator child_end(const DeclStmt& Node) {
     return Node.decl_end();
+  }
+};
+
+template <>
+struct ChildInfo<FunctionProtoType> {
+  static FunctionProtoType::param_type_iterator child_begin(const FunctionProtoType &Node) {
+    return Node.param_type_begin();
+  }
+
+  static FunctionProtoType::param_type_iterator child_end(const FunctionProtoType &Node) {
+    return Node.param_type_end();
+  }
+};
+
+template <>
+struct ChildInfo<FunctionDecl> {
+  static FunctionDecl::param_const_iterator child_begin(const FunctionDecl &Node) {
+    return Node.param_begin();
+  }
+
+  static FunctionDecl::param_const_iterator child_end(const FunctionDecl &Node) {
+    return Node.param_end();
   }
 };
 

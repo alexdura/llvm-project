@@ -598,6 +598,9 @@ RegistryMaps::RegistryMaps() {
   REGISTER_MATCHER(fieldDistinct);
   REGISTER_MATCHER(subStatementDistinct);
   REGISTER_MATCHER(declDistinct);
+  REGISTER_MATCHER(paramTypeDistinct);
+  REGISTER_MATCHER(paramDeclDistinct);
+
   REGISTER_MATCHER(bAnyDecl);
   REGISTER_MATCHER(bAnyStmt);
   REGISTER_MATCHER(bAnyTypeLoc);
