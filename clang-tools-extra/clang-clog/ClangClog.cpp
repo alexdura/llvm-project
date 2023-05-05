@@ -139,20 +139,13 @@ ClangClog::Loc ClangClog::srcLocation(i64 NodeId) const {
 
   const auto &SM = ASTIt->second->getSourceManager();
 
-  const FullSourceLoc &SrcLocBegin = ASTIt->second->getFullLoc(SR.getBegin());
-  const FullSourceLoc &SrcLocEnd = ASTIt->second->getFullLoc(SR.getEnd());
-
-  if (SrcLocBegin.isValid() && SrcLocEnd.isValid()) {
-    return {
-      SM.getBufferName(SR.getBegin()).str(),
-      SM.getExpansionLineNumber(SR.getBegin()),
-      SM.getExpansionColumnNumber(SR.getBegin()),
-      SM.getExpansionLineNumber(SR.getEnd()),
-      SM.getExpansionColumnNumber(SR.getEnd())
-    };
-  }
-
-  return {"<UNKNOWN>", 0, 0, 0, 0};
+  return {
+    SM.getPresumedLoc(SM.getSpellingLoc(SR.getBegin())).getFilename(),
+    SM.getSpellingLineNumber(SR.getBegin()),
+    SM.getSpellingColumnNumber(SR.getBegin()),
+    SM.getSpellingLineNumber(SR.getEnd()),
+    SM.getSpellingColumnNumber(SR.getEnd())
+  };
 }
 
 i64 ClangClog::type(i64 NodeId) {
