@@ -109,7 +109,7 @@ public:
   Loc srcLocation(i64 NodeId) const;
   i64 type(i64 NodeId);
   i64 decl(i64 NodeId);
-  std::vector<i64> parent(const i64 NodeId) const { llvm_unreachable("Unimplemented"); }
+  i64 parent(i64 NodeId);
   bool isParent(const i64 ParentId, const i64 NodeId);
   bool isAncestor(const i64 AncestorId, const i64 NodeId);
   std::string name(const i64 NodeId);

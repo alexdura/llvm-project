@@ -600,6 +600,8 @@ RegistryMaps::RegistryMaps() {
   REGISTER_MATCHER(declDistinct);
   REGISTER_MATCHER(paramTypeDistinct);
   REGISTER_MATCHER(paramDeclDistinct);
+  REGISTER_MATCHER(argumentDistinct);
+
 
   REGISTER_MATCHER(bAnyDecl);
   REGISTER_MATCHER(bAnyStmt);

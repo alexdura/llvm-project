@@ -235,6 +235,32 @@ std::string ClangClog::name(const i64 NodeId) {
   return "";
 }
 
+i64 ClangClog::parent(i64 NodeId) {
+  auto Node = NodeIds.getEntry(NodeId);
+  auto It = NodeToAST.find(Node);
+  if (It == NodeToAST.end()) {
+    llvm::errs() << "Could not find ASTContext for node nodeId=" << NodeId << ".";
+    llvm_unreachable("Ooops!");
+  }
+
+  auto Parents = It->second->getParents(Node);
+
+  if (Parents.empty()) {
+    return 0;
+  } else {
+    auto PIt = Parents.begin();
+    auto ParentNode = *PIt;
+
+    if (std::next(PIt) != Parents.end()) {
+      llvm::errs() << "Expecting that nodeId=" << NodeId << " has at most one parent. This should hold for C (no templates)";
+      llvm_unreachable("Ooops!");
+    }
+
+    NodeToAST.insert(std::make_pair(ParentNode, It->second));
+    return NodeIds.getId(ParentNode);
+  }
+}
+
 ClangClogBuilder::~ClangClogBuilder() {
   // Argv[I] is not new[]'d, so start from 1.
   for (unsigned I = 1; I < Argc; ++I) {

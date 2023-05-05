@@ -1811,15 +1811,15 @@ SWIGEXPORT jlong JNICALL Java_clang_swig_clogJNI_ClangClog_1parent(JNIEnv *jenv,
   jlong jresult = 0 ;
   clang::clog::ClangClog *arg1 = (clang::clog::ClangClog *) 0 ;
   clang::clog::i64 arg2 ;
-  std::vector< clang::clog::i64 > result;
+  clang::clog::i64 result;
   
   (void)jenv;
   (void)jcls;
   (void)jarg1_;
   arg1 = *(clang::clog::ClangClog **)&jarg1; 
   arg2 = (clang::clog::i64)jarg2; 
-  result = ((clang::clog::ClangClog const *)arg1)->parent(arg2);
-  *(std::vector< clang::clog::i64 > **)&jresult = new std::vector< clang::clog::i64 >((const std::vector< clang::clog::i64 > &)result); 
+  result = (clang::clog::i64)(arg1)->parent(arg2);
+  jresult = (jlong)result; 
   return jresult;
 }
 

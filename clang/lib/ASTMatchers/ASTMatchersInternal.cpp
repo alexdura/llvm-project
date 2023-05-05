@@ -1098,5 +1098,9 @@ const internal::VariadicDynCastDistinctMatcher<FunctionProtoType, QualType>
 const internal::VariadicDynCastDistinctMatcher<FunctionDecl, ParmVarDecl>
     paramDeclDistinct;
 
+const internal::VariadicDynCastDistinctMatcher<CallExpr, Expr>
+    argumentDistinct;
+
+
 } // end namespace ast_matchers
 } // end namespace clang

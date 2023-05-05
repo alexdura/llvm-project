@@ -1399,6 +1399,17 @@ public:
 };
 
 template<>
+struct ChildInfo<CallExpr> {
+  static CallExpr::const_arg_iterator child_begin(const CallExpr &E) {
+    return E.arg_begin();
+  }
+
+  static CallExpr::const_arg_iterator child_end(const CallExpr &E) {
+    return E.arg_end();
+  }
+};
+
+template<>
 struct ChildInfo<RecordDecl> {
   static RecordDecl::field_iterator child_begin(const RecordDecl& Node) {
     return Node.field_begin();

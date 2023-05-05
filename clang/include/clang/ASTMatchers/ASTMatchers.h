@@ -8536,6 +8536,9 @@ extern const internal::VariadicDynCastDistinctMatcher<FunctionProtoType, QualTyp
 extern const internal::VariadicDynCastDistinctMatcher<FunctionDecl, ParmVarDecl>
     paramDeclDistinct;
 
+extern const internal::VariadicDynCastDistinctMatcher<CallExpr, Expr>
+    argumentDistinct;
+
 
 //----------------------------------------------------------------------------//
 // End Clog matchers
