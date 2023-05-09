@@ -51,6 +51,9 @@ class ClangClog {
     }
   };
 
+  std::pair<DynTypedNode, ASTContext*> getNodeFromId(i64 Id) const;
+  i64 getIdForNode(DynTypedNode N, ASTContext *Ctx);
+
   class ClangClogCFG {
     ASTContext *Ctx;
     std::unique_ptr<CFG> Cfg;

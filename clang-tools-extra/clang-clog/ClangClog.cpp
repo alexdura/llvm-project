@@ -104,6 +104,21 @@ std::vector<std::vector<i64>> ClangClog::matchFromRoot(i64 MatcherId) {
   return Result;
 }
 
+std::pair<DynTypedNode, ASTContext*> ClangClog::getNodeFromId(i64 NodeId) const {
+  auto Node = NodeIds.getEntry(NodeId);
+  auto It = NodeToAST.find(Node);
+  if (It == NodeToAST.end()) {
+    llvm::errs() << "Could not find ASTContext for node nodeId=" << NodeId << " .";
+    llvm_unreachable("Ooops!");
+  }
+  return std::make_pair(Node, It->second);
+}
+
+i64 ClangClog::getIdForNode(DynTypedNode N, ASTContext *Ctx) {
+  NodeToAST.insert(std::make_pair(N, Ctx));
+  return NodeIds.getId(N);
+}
+
 std::vector<std::vector<i64>> ClangClog::matchFromNode(i64 MatcherId, i64 NodeId) {
   auto Node = NodeIds.getEntry(NodeId);
   auto It = NodeToAST.find(Node);
@@ -134,15 +149,13 @@ std::vector<std::vector<i64>> ClangClog::matchFromNode(i64 MatcherId, i64 NodeId
 }
 
 ClangClog::Loc ClangClog::srcLocation(i64 NodeId) const {
-  auto Node = NodeIds.getEntry(NodeId);
-  auto SR = Node.getSourceRange();
-  auto ASTIt = NodeToAST.find(Node);
-  if (ASTIt == NodeToAST.end()) {
-    llvm::errs() << "Could not find ASTContext for node id " << NodeId << "\n";
-    llvm_unreachable("Could not find ASTContext for node.");
-  }
+  DynTypedNode Node;
+  ASTContext *Ctx;
 
-  const auto &SM = ASTIt->second->getSourceManager();
+  std::tie(Node, Ctx) = getNodeFromId(NodeId);
+  auto SR = Node.getSourceRange();
+
+  const auto &SM = Ctx->getSourceManager();
 
   return {
     SM.getPresumedLoc(SM.getSpellingLoc(SR.getBegin())).getFilename(),
@@ -154,18 +167,16 @@ ClangClog::Loc ClangClog::srcLocation(i64 NodeId) const {
 }
 
 i64 ClangClog::type(i64 NodeId) {
-  auto Node = NodeIds.getEntry(NodeId);
-  auto ASTIt = NodeToAST.find(Node);
-  if (ASTIt == NodeToAST.end()) {
-    return 0;
-  }
+  DynTypedNode Node;
+  ASTContext *Ctx;
+  std::tie(Node, Ctx) = getNodeFromId(NodeId);
 
   if (const auto *E = Node.get<Expr>()) {
     const auto &T = E->getType();
     auto DynNode = DynTypedNode::create(T);
-    NodeToAST.insert(std::make_pair(DynNode, ASTIt->getSecond()));
-    return NodeIds.getId(DynTypedNode::create(T));
+    return getIdForNode(DynNode, Ctx);
   }
+
   return 0;
 }
 
@@ -184,16 +195,13 @@ i64 ClangClog::decl(i64 NodeId) {
 }
 
 bool ClangClog::isParent(const i64 ParentId, const i64 NodeId) {
-  auto Node = NodeIds.getEntry(NodeId);
-  auto It = NodeToAST.find(Node);
-  if (It == NodeToAST.end()) {
-    llvm::errs() << "Could not find ASTContext for node nodeId=" << NodeId << ".";
-    llvm_unreachable("Ooops!");
-  }
+  DynTypedNode Node;
+  ASTContext *Ctx;
+  std::tie(Node, Ctx) = getNodeFromId(NodeId);
 
   auto ParentNode = NodeIds.getEntry(ParentId);
 
-  for (const auto &ParentCandidate : It->getSecond()->getParents(Node)) {
+  for (const auto &ParentCandidate : Ctx->getParents(Node)) {
     if (ParentNode == ParentCandidate)
       return true;
   }
@@ -211,16 +219,13 @@ static bool isAncestorHelper(DynTypedNode Ancestor, DynTypedNode Node, ASTContex
 }
 
 bool ClangClog::isAncestor(const i64 AncestorId, const i64 NodeId) {
-  auto Node = NodeIds.getEntry(NodeId);
-  auto It = NodeToAST.find(Node);
-  if (It == NodeToAST.end()) {
-    llvm::errs() << "Could not find ASTContext for node nodeId=" << NodeId << ".";
-    llvm_unreachable("Ooops!");
-  }
+  DynTypedNode Node;
+  ASTContext *Ctx;
+  std::tie(Node, Ctx) = getNodeFromId(NodeId);
 
   auto AncestorNode = NodeIds.getEntry(AncestorId);
 
-  return isAncestorHelper(AncestorNode, Node, *It->getSecond());
+  return isAncestorHelper(AncestorNode, Node, *Ctx);
 }
 
 std::string ClangClog::name(const i64 NodeId) {
@@ -234,19 +239,16 @@ std::string ClangClog::name(const i64 NodeId) {
 }
 
 i64 ClangClog::parent(i64 NodeId) {
-  auto Node = NodeIds.getEntry(NodeId);
-  auto It = NodeToAST.find(Node);
-  if (It == NodeToAST.end()) {
-    llvm::errs() << "Could not find ASTContext for node nodeId=" << NodeId << ".";
-    llvm_unreachable("Ooops!");
-  }
+  DynTypedNode Node;
+  ASTContext *Ctx;
+  std::tie(Node, Ctx) = getNodeFromId(NodeId);
 
-  auto Parents = It->second->getParents(Node);
+  auto Parents = Ctx->getParents(Node);
 
   if (Parents.empty()) {
     return 0;
   } else {
-    auto PIt = Parents.begin();
+    const auto *PIt = Parents.begin();
     auto ParentNode = *PIt;
 
     if (std::next(PIt) != Parents.end()) {
@@ -254,8 +256,7 @@ i64 ClangClog::parent(i64 NodeId) {
       llvm_unreachable("Ooops!");
     }
 
-    NodeToAST.insert(std::make_pair(ParentNode, It->second));
-    return NodeIds.getId(ParentNode);
+    return getIdForNode(ParentNode, Ctx);
   }
 }
 
@@ -273,22 +274,17 @@ static const Stmt* getParentFunctionBody(const Stmt* N, ASTContext &Ctx) {
 }
 
 i64 ClangClog::cfg(i64 NodeId) {
-  auto Node = NodeIds.getEntry(NodeId);
+  DynTypedNode Node;
+  ASTContext *Ctx;
+  std::tie(Node, Ctx) = getNodeFromId(NodeId);
 
   const auto *S = Node.get<Stmt>();
-
   if (!S)
     return 0;
 
-  auto It = NodeToAST.find(Node);
-  if (It == NodeToAST.end()) {
-    llvm::errs() << "Could not find ASTContext for node nodeId=" << NodeId << ".";
-    llvm_unreachable("Ooops!");
-  }
-
   CFG::BuildOptions CFGOptions;
   auto TheCFG =
-    CFG::buildCFG(nullptr, const_cast<Stmt*>(S), It->getSecond(), CFGOptions);
+    CFG::buildCFG(nullptr, const_cast<Stmt*>(S), Ctx, CFGOptions);
 
 
   auto DumpFile = "cfg_" + std::to_string(NodeId) + ".dot";
@@ -306,6 +302,8 @@ DenseMap<const Stmt*, const CFGBlock*> ClangClog::ClangClogCFG::mapStmtsToBlocks
   DenseMap<const Stmt *, const CFGBlock *> Ret;
 
   for (const CFGBlock *B : llvm::make_range(Cfg.begin(), Cfg.end())) {
+    if (const Stmt *T = B->getTerminatorStmt())
+      Ret[T] = B;
     for (const CFGElement &E : llvm::make_range(B->begin(), B->end())) {
       if (const auto S = E.getAs<CFGStmt>()) {
         Ret[S->getStmt()] = B;
@@ -316,32 +314,51 @@ DenseMap<const Stmt*, const CFGBlock*> ClangClog::ClangClogCFG::mapStmtsToBlocks
   return Ret;
 }
 
+static const Stmt* nextStmtInBlock(CFGBlock::const_iterator Begin,
+                                   CFGBlock::const_iterator End) {
+  for (auto NextEIt = Begin; NextEIt != End; ++NextEIt) {
+    if (NextEIt->getKind() == CFGElement::Statement) {
+      return NextEIt->castAs<CFGStmt>().getStmt();
+    }
+  }
+  return nullptr;
+}
+
+static const Stmt* firstStmtInBlock(const CFGBlock *B) {
+  // Assume that the successor has at least one statement
+  const Stmt* NextStmt = nextStmtInBlock(B->begin(), B->end());
+  if (NextStmt) {
+    return NextStmt;
+  } else if (const Stmt *SuccT = B->getTerminatorStmt()) {
+    return SuccT;
+  }
+  return nullptr;
+}
+
 
 std::vector<i64> ClangClog::cfgSucc(i64 NodeId) {
-  auto Node = NodeIds.getEntry(NodeId);
+  DynTypedNode Node;
+  ASTContext *Ctx;
+  std::tie(Node, Ctx) = getNodeFromId(NodeId);
+
   const auto *S = Node.get<Stmt>();
   if (!S)
     return std::vector<i64>();
 
-  auto It = NodeToAST.find(Node);
-  if (It == NodeToAST.end()) {
-    llvm::errs() << "Could not find ASTContext for node nodeId=" << NodeId << ".";
-    llvm_unreachable("Ooops!");
-  }
 
-
-  const Stmt *Body = getParentFunctionBody(S, *It->second);
+  const Stmt *Body = getParentFunctionBody(S, *Ctx);
   if (!Body)
     return std::vector<i64>();
 
   decltype(StmtToCFG)::iterator CfgIt;
-  std::tie(CfgIt, std::ignore) = StmtToCFG.try_emplace(Body, S, It->second);
+  std::tie(CfgIt, std::ignore) = StmtToCFG.try_emplace(Body, S, Ctx);
 
   auto BIt = CfgIt->second.StmtToBlock.find(S);
   if (BIt == CfgIt->second.StmtToBlock.end())
     return std::vector<i64>();
 
   const auto *B = BIt->second;
+
   for (auto EIt = B->begin(); EIt != B->end(); ++EIt) {
     if (EIt->getKind() != CFGElement::Statement)
       continue;
@@ -351,17 +368,38 @@ std::vector<i64> ClangClog::cfgSucc(i64 NodeId) {
       continue;
 
     // Found the current Stmt, look for the next one
-    for (auto NextEIt = std::next(EIt); NextEIt != B->end(); ++NextEIt) {
-      if (NextEIt->getKind() == CFGElement::Statement) {
-        // TODO
-        return {0};
-      } else {
-        // TODO
-        return {1};
+    const Stmt *NextStmt = nextStmtInBlock(std::next(EIt), B->end());
+    if (NextStmt) {
+      return {getIdForNode(DynTypedNode::create(*NextStmt), Ctx)};
+    } else if (const Stmt *T = B->getTerminatorStmt()) {
+      return {getIdForNode(DynTypedNode::create(*T), Ctx)};
+    } else {
+      // If we reached this point, then the successors are not in this block
+      std::vector<i64> Successors;
+      for (CFGBlock *SuccB : llvm::make_range(B->succ_begin(), B->succ_end())) {
+        // Assume that the successor has at least one statement
+        const auto *First = firstStmtInBlock(SuccB);
+        if (First) {
+          Successors.push_back(getIdForNode(DynTypedNode::create(*First), Ctx));
+        }
       }
+      return Successors;
     }
   }
-  return std::vector<i64>();
+
+  if (S == B->getTerminatorStmt()) {
+    std::vector<i64> Successors;
+    for (CFGBlock *SuccB : llvm::make_range(B->succ_begin(), B->succ_end())) {
+      // Assume that the successor has at least one statement
+      const auto *First = firstStmtInBlock(SuccB);
+      if (First) {
+        Successors.push_back(getIdForNode(DynTypedNode::create(*First), Ctx));
+      }
+    }
+    return Successors;
+  }
+
+  return {};
 }
 
 
