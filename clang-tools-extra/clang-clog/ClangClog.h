@@ -1,5 +1,6 @@
 #include <cstdint>
 #include <vector>
+#include "clang/AST/ASTContext.h"
 #include "clang/AST/ASTTypeTraits.h"
 #include "clang/Basic/PlistSupport.h"
 #include "clang/Tooling/Tooling.h"
@@ -11,6 +12,8 @@
 #include "clang/ASTMatchers/Dynamic/Parser.h"
 #include "llvm/Support/ErrorOr.h"
 #include "clang/Tooling/CommonOptionsParser.h"
+#include "clang/Analysis/CFG.h"
+
 
 #pragma once
 
@@ -48,6 +51,20 @@ class ClangClog {
     }
   };
 
+  class ClangClogCFG {
+    ASTContext *Ctx;
+    std::unique_ptr<CFG> Cfg;
+    static llvm::DenseMap<const Stmt*, const CFGBlock*> mapStmtsToBlocks(const CFG &Cfg);
+  public:
+    const llvm::DenseMap<const Stmt*, const CFGBlock*> StmtToBlock;
+    ClangClogCFG(const Stmt *S, ASTContext *Ctx) :
+      Ctx(Ctx),
+      Cfg(CFG::buildCFG(nullptr, const_cast<Stmt*>(S), Ctx, CFG::BuildOptions())),
+      StmtToBlock(mapStmtsToBlocks(*Cfg)) {}
+  };
+
+  llvm::DenseMap<const Stmt*, ClangClogCFG> StmtToCFG;
+
   struct CollectBoundNodes : clang::ast_matchers::MatchFinder::MatchCallback {
     std::vector<clang::ast_matchers::BoundNodes> Bindings;
     llvm::DenseMap<DynTypedNode, ASTContext*> &NodeToAST;
@@ -60,7 +77,6 @@ class ClangClog {
     }
   };
 
-private:
   const clang::tooling::CompilationDatabase &CDB;
   const std::vector<std::string> &Srcs;
   clang::tooling::ClangTool Tool;
@@ -113,6 +129,9 @@ public:
   bool isParent(const i64 ParentId, const i64 NodeId);
   bool isAncestor(const i64 AncestorId, const i64 NodeId);
   std::string name(const i64 NodeId);
+  i64 cfg(i64 NodeId);
+  std::vector<i64> cfgSucc(i64 NodeId);
+  std::vector<i64> cfgPred(i64 Cfg, i64 NodeId) { };
 
 private:
   // AST node <-> u64 map

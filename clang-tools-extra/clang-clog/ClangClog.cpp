@@ -2,7 +2,9 @@
 #include <string>
 #include <iterator>
 #include <vector>
+#include "clang/AST/ASTTypeTraits.h"
 #include "clang/AST/Expr.h"
+#include "clang/AST/Stmt.h"
 #include "clang/Tooling/Tooling.h"
 #include "clang/Tooling/CompilationDatabase.h"
 #include "clang/Frontend/ASTUnit.h"
@@ -13,6 +15,8 @@
 #include "clang/ASTMatchers/Dynamic/Parser.h"
 #include "llvm/Support/ErrorOr.h"
 #include "llvm/ADT/DenseMap.h"
+#include "clang/Analysis/CFG.h"
+#include "clang/Analysis/CFGStmtMap.h"
 
 using namespace clang;
 using namespace llvm;
@@ -24,6 +28,7 @@ using namespace clang::ast_matchers::internal;
 
 namespace clang {
 namespace clog {
+
 bool ClangClog::init() {
   switch (Tool.buildASTs(ASTs)) {
   case 2:
@@ -253,6 +258,112 @@ i64 ClangClog::parent(i64 NodeId) {
     return NodeIds.getId(ParentNode);
   }
 }
+
+static const Stmt* getParentFunctionBody(const Stmt* N, ASTContext &Ctx) {
+  for (const auto &P : Ctx.getParents(*N)) {
+    if (P.get<FunctionDecl>()) {
+      return N;
+    } else if (const auto *ParentS = P.get<Stmt>()) {
+      return getParentFunctionBody(ParentS, Ctx);
+    }
+    // Only look at first element
+    break;
+  }
+  return nullptr;
+}
+
+i64 ClangClog::cfg(i64 NodeId) {
+  auto Node = NodeIds.getEntry(NodeId);
+
+  const auto *S = Node.get<Stmt>();
+
+  if (!S)
+    return 0;
+
+  auto It = NodeToAST.find(Node);
+  if (It == NodeToAST.end()) {
+    llvm::errs() << "Could not find ASTContext for node nodeId=" << NodeId << ".";
+    llvm_unreachable("Ooops!");
+  }
+
+  CFG::BuildOptions CFGOptions;
+  auto TheCFG =
+    CFG::buildCFG(nullptr, const_cast<Stmt*>(S), It->getSecond(), CFGOptions);
+
+
+  auto DumpFile = "cfg_" + std::to_string(NodeId) + ".dot";
+  std::error_code EC;
+  auto DumpStream = raw_fd_ostream(DumpFile, EC);
+  llvm::dbgs() << "CFG dumped to " << DumpFile << "\n";
+  TheCFG->print(DumpStream, LangOptions(), false);
+
+  // TheCFG->viewCFG(LangOptions());
+
+  return 0;
+}
+
+DenseMap<const Stmt*, const CFGBlock*> ClangClog::ClangClogCFG::mapStmtsToBlocks(const CFG &Cfg) {
+  DenseMap<const Stmt *, const CFGBlock *> Ret;
+
+  for (const CFGBlock *B : llvm::make_range(Cfg.begin(), Cfg.end())) {
+    for (const CFGElement &E : llvm::make_range(B->begin(), B->end())) {
+      if (const auto S = E.getAs<CFGStmt>()) {
+        Ret[S->getStmt()] = B;
+      }
+    }
+  }
+
+  return Ret;
+}
+
+
+std::vector<i64> ClangClog::cfgSucc(i64 NodeId) {
+  auto Node = NodeIds.getEntry(NodeId);
+  const auto *S = Node.get<Stmt>();
+  if (!S)
+    return std::vector<i64>();
+
+  auto It = NodeToAST.find(Node);
+  if (It == NodeToAST.end()) {
+    llvm::errs() << "Could not find ASTContext for node nodeId=" << NodeId << ".";
+    llvm_unreachable("Ooops!");
+  }
+
+
+  const Stmt *Body = getParentFunctionBody(S, *It->second);
+  if (!Body)
+    return std::vector<i64>();
+
+  decltype(StmtToCFG)::iterator CfgIt;
+  std::tie(CfgIt, std::ignore) = StmtToCFG.try_emplace(Body, S, It->second);
+
+  auto BIt = CfgIt->second.StmtToBlock.find(S);
+  if (BIt == CfgIt->second.StmtToBlock.end())
+    return std::vector<i64>();
+
+  const auto *B = BIt->second;
+  for (auto EIt = B->begin(); EIt != B->end(); ++EIt) {
+    if (EIt->getKind() != CFGElement::Statement)
+      continue;
+
+    const auto &S1 = EIt->castAs<CFGStmt>();
+    if (S1.getStmt() != S)
+      continue;
+
+    // Found the current Stmt, look for the next one
+    for (auto NextEIt = std::next(EIt); NextEIt != B->end(); ++NextEIt) {
+      if (NextEIt->getKind() == CFGElement::Statement) {
+        // TODO
+        return {0};
+      } else {
+        // TODO
+        return {1};
+      }
+    }
+  }
+  return std::vector<i64>();
+}
+
 
 ClangClogBuilder::~ClangClogBuilder() {
   // Argv[I] is not new[]'d, so start from 1.

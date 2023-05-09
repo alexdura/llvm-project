@@ -7,6 +7,7 @@ clang_target_link_libraries(clang-clog
   PRIVATE
   clangQuery
   clangAST
+  clangAnalysis
   clangASTMatchers
   clangBasic
   clangDynamicASTMatchers

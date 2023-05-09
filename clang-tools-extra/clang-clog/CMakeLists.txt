@@ -14,6 +14,7 @@ add_clang_library(clangClog
 clang_target_link_libraries(clangClog
   PRIVATE
   clangQuery
+  clangAnalysis
   clangAST
   clangASTMatchers
   clangBasic
