@@ -62,7 +62,7 @@ class ClangClog {
     const llvm::DenseMap<const Stmt*, const CFGBlock*> StmtToBlock;
     ClangClogCFG(const Stmt *S, ASTContext *Ctx) :
       Ctx(Ctx),
-      Cfg(CFG::buildCFG(nullptr, const_cast<Stmt*>(S), Ctx, CFG::BuildOptions())),
+      Cfg(CFG::buildCFG(nullptr, const_cast<Stmt*>(S), Ctx, CFG::BuildOptions().setAllAlwaysAdd())),
       StmtToBlock(mapStmtsToBlocks(*Cfg)) {}
   };
 
@@ -135,6 +135,7 @@ public:
   i64 cfg(i64 NodeId);
   std::vector<i64> cfgSucc(i64 NodeId);
   std::vector<i64> cfgPred(i64 Cfg, i64 NodeId) { };
+  std::string dump(const i64 NodeId);
 
 private:
   // AST node <-> u64 map

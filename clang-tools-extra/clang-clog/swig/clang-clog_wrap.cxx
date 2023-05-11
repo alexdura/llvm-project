@@ -1932,6 +1932,23 @@ SWIGEXPORT jlong JNICALL Java_clang_swig_clogJNI_ClangClog_1cfgPred(JNIEnv *jenv
 }
 
 
+SWIGEXPORT jstring JNICALL Java_clang_swig_clogJNI_ClangClog_1dump(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jlong jarg2) {
+  jstring jresult = 0 ;
+  clang::clog::ClangClog *arg1 = (clang::clog::ClangClog *) 0 ;
+  clang::clog::i64 arg2 ;
+  std::string result;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(clang::clog::ClangClog **)&jarg1; 
+  arg2 = (clang::clog::i64)jarg2; 
+  result = (arg1)->dump(arg2);
+  jresult = jenv->NewStringUTF((&result)->c_str()); 
+  return jresult;
+}
+
+
 SWIGEXPORT void JNICALL Java_clang_swig_clogJNI_delete_1ClangClog(JNIEnv *jenv, jclass jcls, jlong jarg1) {
   clang::clog::ClangClog *arg1 = (clang::clog::ClangClog *) 0 ;
   

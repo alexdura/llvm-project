@@ -17,6 +17,7 @@
 #include "llvm/ADT/DenseMap.h"
 #include "clang/Analysis/CFG.h"
 #include "clang/Analysis/CFGStmtMap.h"
+#include "llvm/Support/raw_ostream.h"
 
 using namespace clang;
 using namespace llvm;
@@ -282,9 +283,10 @@ i64 ClangClog::cfg(i64 NodeId) {
   if (!S)
     return 0;
 
-  CFG::BuildOptions CFGOptions;
+  const auto *Body = getParentFunctionBody(S, *Ctx);
+
   auto TheCFG =
-    CFG::buildCFG(nullptr, const_cast<Stmt*>(S), Ctx, CFGOptions);
+    CFG::buildCFG(nullptr, const_cast<Stmt*>(Body), Ctx, CFG::BuildOptions().setAllAlwaysAdd());
 
 
   auto DumpFile = "cfg_" + std::to_string(NodeId) + ".dot";
@@ -351,7 +353,7 @@ std::vector<i64> ClangClog::cfgSucc(i64 NodeId) {
     return std::vector<i64>();
 
   decltype(StmtToCFG)::iterator CfgIt;
-  std::tie(CfgIt, std::ignore) = StmtToCFG.try_emplace(Body, S, Ctx);
+  std::tie(CfgIt, std::ignore) = StmtToCFG.try_emplace(S, Body, Ctx);
 
   auto BIt = CfgIt->second.StmtToBlock.find(S);
   if (BIt == CfgIt->second.StmtToBlock.end())
@@ -402,6 +404,15 @@ std::vector<i64> ClangClog::cfgSucc(i64 NodeId) {
   return {};
 }
 
+std::string ClangClog::dump(i64 NodeId) {
+  DynTypedNode Node;
+  ASTContext *Ctx;
+  std::tie(Node, Ctx) = getNodeFromId(NodeId);
+  std::string Str;
+  llvm::raw_string_ostream Out(Str);
+  Node.dump(Out, *Ctx);
+  return Str;
+}
 
 ClangClogBuilder::~ClangClogBuilder() {
   // Argv[I] is not new[]'d, so start from 1.
