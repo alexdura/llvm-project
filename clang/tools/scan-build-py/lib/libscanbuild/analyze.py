@@ -563,6 +563,9 @@ def run_analyzer(opts, continuation=report_failure):
                             opts['direct_args'] + opts['flags'] +
                             [opts['file'], '-o', target()],
                             cwd)
+
+        cmd = [arg for arg in cmd if '-analyzer-checker=' not in arg]
+
         output = run_command(cmd, cwd=cwd)
         return {'error_output': output, 'exit_code': 0}
     except subprocess.CalledProcessError as ex:
