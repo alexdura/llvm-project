@@ -257,6 +257,7 @@ RegistryMaps::RegistryMaps() {
   REGISTER_MATCHER(friendDecl);
   REGISTER_MATCHER(functionDecl);
   REGISTER_MATCHER(functionProtoType);
+  REGISTER_MATCHER(functionNoProtoType);
   REGISTER_MATCHER(functionTemplateDecl);
   REGISTER_MATCHER(functionType);
   REGISTER_MATCHER(genericSelectionExpr);
@@ -439,6 +440,7 @@ RegistryMaps::RegistryMaps() {
   REGISTER_MATCHER(isInstantiationDependent);
   REGISTER_MATCHER(isInteger);
   REGISTER_MATCHER(isIntegral);
+  REGISTER_MATCHER(isVoid);
   REGISTER_MATCHER(isLambda);
   REGISTER_MATCHER(isListInitialization);
   REGISTER_MATCHER(isMain);

@@ -1046,6 +1046,7 @@ const AstTypeMatcher<AutoType> autoType;
 const AstTypeMatcher<DecltypeType> decltypeType;
 const AstTypeMatcher<FunctionType> functionType;
 const AstTypeMatcher<FunctionProtoType> functionProtoType;
+const AstTypeMatcher<FunctionNoProtoType> functionNoProtoType;
 const AstTypeMatcher<ParenType> parenType;
 const AstTypeMatcher<BlockPointerType> blockPointerType;
 const AstTypeMatcher<MemberPointerType> memberPointerType;

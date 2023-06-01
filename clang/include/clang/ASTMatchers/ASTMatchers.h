@@ -6251,6 +6251,13 @@ AST_POLYMORPHIC_MATCHER(
   return Node.isArrow();
 }
 
+
+/// Matches QualType nodes that are of void type.
+AST_MATCHER(QualType, isVoid) {
+    return Node->isVoidType();
+}
+
+
 /// Matches QualType nodes that are of integer type.
 ///
 /// Given
@@ -7031,6 +7038,18 @@ extern const AstTypeMatcher<FunctionType> functionType;
 ///   matches "int (*f)(int)" and the type of "g" in C++ mode.
 ///   In C mode, "g" is not matched because it does not contain a prototype.
 extern const AstTypeMatcher<FunctionProtoType> functionProtoType;
+
+/// Matches \c FunctionNoProtoType nodes.
+///
+/// Given
+/// \code
+///   int (*f)(int);
+///   void g();
+/// \endcode
+/// functionProtoType()
+///   In C mode, "g" is matched because it does not contain a prototype.
+///   Does not match "int (*f)(int)" and the type of "g" in C++ mode.
+extern const AstTypeMatcher<FunctionNoProtoType> functionNoProtoType;
 
 /// Matches \c ParenType nodes.
 ///
