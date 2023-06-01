@@ -378,9 +378,14 @@ std::vector<i64> ClangClog::cfgSucc(i64 NodeId) {
     } else {
       // If we reached this point, then the successors are not in this block
       std::vector<i64> Successors;
-      for (CFGBlock *SuccB : llvm::make_range(B->succ_begin(), B->succ_end())) {
+      for (CFGBlock::AdjacentBlock SuccB : B->succs()) {
+        // TODO: For now we skip unreachable blocks as successors. Decide
+        // if this is a good idea.
+        if (!SuccB.isReachable())
+          continue;
+
         // Assume that the successor has at least one statement
-        const auto *First = firstStmtInBlock(SuccB);
+        const auto *First = firstStmtInBlock(SuccB.getReachableBlock());
         if (First) {
           Successors.push_back(getIdForNode(DynTypedNode::create(*First), Ctx));
         }
@@ -391,9 +396,11 @@ std::vector<i64> ClangClog::cfgSucc(i64 NodeId) {
 
   if (S == B->getTerminatorStmt()) {
     std::vector<i64> Successors;
-    for (CFGBlock *SuccB : llvm::make_range(B->succ_begin(), B->succ_end())) {
+    for (CFGBlock::AdjacentBlock SuccB : B->succs()) {
+      if (!SuccB.isReachable())
+        continue;
       // Assume that the successor has at least one statement
-      const auto *First = firstStmtInBlock(SuccB);
+      const auto *First = firstStmtInBlock(SuccB.getReachableBlock());
       if (First) {
         Successors.push_back(getIdForNode(DynTypedNode::create(*First), Ctx));
       }
