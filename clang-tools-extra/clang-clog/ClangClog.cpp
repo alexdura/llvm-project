@@ -327,12 +327,18 @@ static const Stmt* nextStmtInBlock(CFGBlock::const_iterator Begin,
 }
 
 static const Stmt* firstStmtInBlock(const CFGBlock *B) {
-  // Assume that the successor has at least one statement
   const Stmt* NextStmt = nextStmtInBlock(B->begin(), B->end());
   if (NextStmt) {
     return NextStmt;
   } else if (const Stmt *SuccT = B->getTerminatorStmt()) {
     return SuccT;
+  } else if (std::next(B->succ_begin()) == B->succ_end()) {
+    // empty block with exactly one successor
+    auto *FallthroughSucc = B->succ_begin()->getReachableBlock();
+    // this may cause infinite loops and asserting on those of length 2 is cheap
+    assert (FallthroughSucc != B && "Empty block is its own successor!");
+    if (FallthroughSucc)
+      return firstStmtInBlock(FallthroughSucc);
   }
   return nullptr;
 }
