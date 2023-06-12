@@ -55,6 +55,9 @@ i64 ClangClog::registerMatcher(const std::string &Pattern, bool IsGlobal) {
     return -1;
   }
 
+  // Ignore all implicit nodes
+  Matcher = Matcher->withTraversalKind(TK_IgnoreUnlessSpelledInSource);
+
   i64 MatcherId = Matchers.size();
 
   Matchers.push_back(*Matcher);
@@ -79,7 +82,6 @@ void ClangClog::runGlobalMatchers() {
 
   for (auto &AST : ASTs) {
     auto &Ctx = AST->getASTContext();
-    Ctx.getParentMapContext().setTraversalKind(TK_IgnoreUnlessSpelledInSource);
     GlobalFinder.matchAST(Ctx);
   }
 }
