@@ -294,7 +294,7 @@ i64 ClangClog::cfg(i64 NodeId) {
     CFG::buildCFG(nullptr, const_cast<Stmt*>(Body), Ctx, CFG::BuildOptions().setAllAlwaysAdd());
 
 
-  auto DumpFile = "cfg_" + std::to_string(NodeId) + ".dot";
+  auto DumpFile = "cfg_" + std::to_string(NodeId) + ".dump";
   std::error_code EC;
   auto DumpStream = raw_fd_ostream(DumpFile, EC);
   llvm::dbgs() << "CFG dumped to " << DumpFile << "\n";
