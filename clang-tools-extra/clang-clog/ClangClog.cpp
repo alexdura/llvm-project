@@ -263,12 +263,15 @@ i64 ClangClog::parent(i64 NodeId) {
   }
 }
 
-static const Stmt* getParentFunctionBody(const Stmt* N, ASTContext &Ctx) {
+template<typename NodeT>
+static const Stmt* getParentFunctionBody(const NodeT *N, ASTContext &Ctx) {
   for (const auto &P : Ctx.getParents(*N)) {
-    if (P.get<FunctionDecl>()) {
-      return N;
-    } else if (const auto *ParentS = P.get<Stmt>()) {
+    if (const auto *FuncDecl = P.template get<FunctionDecl>()) {
+      return FuncDecl->getBody();
+    } else if (const auto *ParentS = P.template get<Stmt>()) {
       return getParentFunctionBody(ParentS, Ctx);
+    } else if (const auto *ParentD = P.template get<Decl>()) {
+      return getParentFunctionBody(ParentD, Ctx);
     }
     // Only look at first element
     break;
