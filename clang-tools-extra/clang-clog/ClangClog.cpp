@@ -13,6 +13,8 @@
 #include "clang/ASTMatchers/ASTMatchFinder.h"
 #include "clang/ASTMatchers/Dynamic/Diagnostics.h"
 #include "clang/ASTMatchers/Dynamic/Parser.h"
+#include "llvm/ADT/iterator_range.h"
+#include "llvm/Support/Casting.h"
 #include "llvm/Support/ErrorOr.h"
 #include "llvm/ADT/DenseMap.h"
 #include "clang/Analysis/CFG.h"
@@ -305,20 +307,13 @@ i64 ClangClog::cfg(i64 NodeId) {
   return 0;
 }
 
-DenseMap<const Stmt*, const CFGBlock*> ClangClog::ClangClogCFG::mapStmtsToBlocks(const CFG &Cfg) {
-  DenseMap<const Stmt *, const CFGBlock *> Ret;
-
-  for (const CFGBlock *B : llvm::make_range(Cfg.begin(), Cfg.end())) {
-    if (const Stmt *T = B->getTerminatorStmt())
-      Ret[T] = B;
-    for (const CFGElement &E : llvm::make_range(B->begin(), B->end())) {
-      if (const auto S = E.getAs<CFGStmt>()) {
-        Ret[S->getStmt()] = B;
-      }
-    }
+static const Stmt *getASTStmt(const CFGStmt &S, const CFG &Cfg) {
+  if (const auto *D = dyn_cast<DeclStmt>(S.getStmt())) {
+    auto It = Cfg.getSyntheticDeclStmts().find(D);
+    if (It != Cfg.getSyntheticDeclStmts().end())
+      return It->getSecond();
   }
-
-  return Ret;
+  return S.getStmt();
 }
 
 static const Stmt* nextStmtInBlock(CFGBlock::const_iterator Begin,
@@ -348,6 +343,59 @@ static const Stmt* firstStmtInBlock(const CFGBlock *B) {
   return nullptr;
 }
 
+void ClangClog::ClangClogCFG::mapStmtsToSuccessors(const CFG &Cfg) {
+  for (const CFGBlock *B : llvm::make_range(Cfg.begin(), Cfg.end())) {
+    const Stmt* PrevS = nullptr;
+    for (const CFGElement &E : llvm::make_range(B->begin(), B->end())) {
+      if (const auto S = E.getAs<CFGStmt>()) {
+        if (PrevS) {
+          SuccStmt[PrevS].push_back(S->getStmt());
+        }
+        PrevS = S->getStmt();
+
+        if (const DeclStmt *D = dyn_cast<DeclStmt>(S->getStmt())) {
+          auto It = Cfg.getSyntheticDeclStmts().find(D);
+          if (It != Cfg.getSyntheticDeclStmts().end()) {
+            SyntheticDecl[It->second] = D;
+          }
+        }
+      }
+    }
+
+    if (const Stmt *T = B->getTerminatorStmt()) {
+      if (PrevS) {
+        SuccStmt[PrevS].push_back(T);
+      }
+      PrevS = T;
+    }
+
+    if (PrevS) {
+      for (CFGBlock::AdjacentBlock SuccB : B->succs()) {
+        if (!SuccB.isReachable())
+          continue;
+        const Stmt *FirstInSuccessor = firstStmtInBlock(SuccB.getReachableBlock());
+        if (FirstInSuccessor) {
+          SuccStmt[PrevS].push_back(FirstInSuccessor);
+        }
+      }
+    }
+  }
+
+  for (auto It = SyntheticDecl.begin(), End = SyntheticDecl.end(); It != End; ++It) {
+    LastSyntheticDeclStmt.insert(It->second);
+  }
+}
+
+ClangClog::ClangClogCFG::succ_range ClangClog::ClangClogCFG::successors(const Stmt *S) const {
+  auto It = SuccStmt.find(S);
+  if (It == SuccStmt.end()) {
+    // Statement with no successors
+    SmallVector<const Stmt*, 1> Empty;
+    return llvm::make_range(Empty.begin(), Empty.end());
+  }
+
+  return llvm::make_range(It->getSecond().begin(), It->getSecond().end());
+}
 
 std::vector<i64> ClangClog::cfgSucc(i64 NodeId) {
   DynTypedNode Node;
@@ -364,62 +412,23 @@ std::vector<i64> ClangClog::cfgSucc(i64 NodeId) {
     return std::vector<i64>();
 
   decltype(StmtToCFG)::iterator CfgIt;
-  std::tie(CfgIt, std::ignore) = StmtToCFG.try_emplace(S, Body, Ctx);
+  std::tie(CfgIt, std::ignore) = StmtToCFG.try_emplace(Body, Body, Ctx);
 
-  auto BIt = CfgIt->second.StmtToBlock.find(S);
-  if (BIt == CfgIt->second.StmtToBlock.end())
-    return std::vector<i64>();
+  const auto &Cfg = CfgIt->getSecond();
 
-  const auto *B = BIt->second;
-
-  for (auto EIt = B->begin(); EIt != B->end(); ++EIt) {
-    if (EIt->getKind() != CFGElement::Statement)
-      continue;
-
-    const auto &S1 = EIt->castAs<CFGStmt>();
-    if (S1.getStmt() != S)
-      continue;
-
-    // Found the current Stmt, look for the next one
-    const Stmt *NextStmt = nextStmtInBlock(std::next(EIt), B->end());
-    if (NextStmt) {
-      return {getIdForNode(DynTypedNode::create(*NextStmt), Ctx)};
-    } else if (const Stmt *T = B->getTerminatorStmt()) {
-      return {getIdForNode(DynTypedNode::create(*T), Ctx)};
-    } else {
-      // If we reached this point, then the successors are not in this block
-      std::vector<i64> Successors;
-      for (CFGBlock::AdjacentBlock SuccB : B->succs()) {
-        // TODO: For now we skip unreachable blocks as successors. Decide
-        // if this is a good idea.
-        if (!SuccB.isReachable())
-          continue;
-
-        // Assume that the successor has at least one statement
-        const auto *First = firstStmtInBlock(SuccB.getReachableBlock());
-        if (First) {
-          Successors.push_back(getIdForNode(DynTypedNode::create(*First), Ctx));
-        }
-      }
-      return Successors;
-    }
+  if (const auto *D = Cfg.getLastSyntheticDeclStmt(S)) {
+    // S is a DeclStmt that is expanded to multiple synthetic DeclStmts
+    // Return the successors of the last of these.
+    S = D;
   }
 
-  if (S == B->getTerminatorStmt()) {
-    std::vector<i64> Successors;
-    for (CFGBlock::AdjacentBlock SuccB : B->succs()) {
-      if (!SuccB.isReachable())
-        continue;
-      // Assume that the successor has at least one statement
-      const auto *First = firstStmtInBlock(SuccB.getReachableBlock());
-      if (First) {
-        Successors.push_back(getIdForNode(DynTypedNode::create(*First), Ctx));
-      }
-    }
-    return Successors;
+  std::vector<i64> Ret;
+  for (const Stmt *Succ : Cfg.successors(S)) {
+    const auto *RealSucc = Cfg.skipSyntheticSuccessor(Succ);
+    Ret.push_back(getIdForNode(DynTypedNode::create(*RealSucc), Ctx));
   }
 
-  return {};
+  return Ret;
 }
 
 std::string ClangClog::dump(i64 NodeId) {

@@ -1390,6 +1390,10 @@ public:
     return synthetic_stmt_range(synthetic_stmt_begin(), synthetic_stmt_end());
   }
 
+  const llvm::DenseMap<const DeclStmt *, const DeclStmt*>& getSyntheticDeclStmts() const {
+    return SyntheticDeclStmts;
+  }
+
   //===--------------------------------------------------------------------===//
   // Member templates useful for various batch operations over CFGs.
   //===--------------------------------------------------------------------===//

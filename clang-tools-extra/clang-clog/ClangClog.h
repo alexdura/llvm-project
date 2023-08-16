@@ -55,15 +55,65 @@ class ClangClog {
   i64 getIdForNode(DynTypedNode N, ASTContext *Ctx);
 
   class ClangClogCFG {
+    using EdgeMap = llvm::DenseMap<const Stmt*, SmallVector<const Stmt*, 1>>;
+    using succ_range = llvm::iterator_range<SmallVector<const Stmt*, 1>::const_iterator>;
+
     ASTContext *Ctx;
     std::unique_ptr<CFG> Cfg;
-    static llvm::DenseMap<const Stmt*, const CFGBlock*> mapStmtsToBlocks(const CFG &Cfg);
+
+    void mapStmtsToSuccessors(const CFG &CFG);
+
+    // Map AST statements to the last synthetic statement in their expansion
+    llvm::DenseMap<const DeclStmt*, const DeclStmt*> SyntheticDecl;
+    // Map statements (AST or synthetic) to their control-flow successors
+    EdgeMap SuccStmt;
+    // Set of synthetic statements that are last in their expansion
+    llvm::DenseSet<const DeclStmt*> LastSyntheticDeclStmt;
+
+
   public:
-    const llvm::DenseMap<const Stmt*, const CFGBlock*> StmtToBlock;
+    succ_range successors(const Stmt *S) const;
+
+    const DeclStmt* getLastSyntheticDeclStmt(const Stmt *S) const {
+      if (const auto *D = dyn_cast<DeclStmt>(S)) {
+        if (D->isSingleDecl())
+          return nullptr;
+        auto It = SyntheticDecl.find(D);
+        if (It != SyntheticDecl.end())
+          return It->second;
+      }
+      return nullptr;
+    }
+
+    const Stmt* skipSyntheticSuccessor(const Stmt *Succ) const {
+      // Synthetic stmts arise only in DeclStmts
+      const auto *D = dyn_cast<DeclStmt>(Succ);
+      if (!D)
+        return Succ;
+
+      // This is not a synthetic DeclStmt
+      auto It = Cfg->getSyntheticDeclStmts().find(D);
+      if (It == Cfg->getSyntheticDeclStmts().end())
+        return Succ;
+
+      if (LastSyntheticDeclStmt.contains(D)) {
+        // This is last synthetic DeclStmt in its expansion, replace it with the
+        // AST DeclStmt
+        return It->getSecond();
+      } else {
+        // This is synthetic, but is not the last in its expansion, so it has precisely one successor
+        // because it's not at the end of the block.
+        const Stmt *SS = *successors(D).begin();
+        return skipSyntheticSuccessor(SS);
+      }
+    }
+
+
     ClangClogCFG(const Stmt *S, ASTContext *Ctx) :
       Ctx(Ctx),
-      Cfg(CFG::buildCFG(nullptr, const_cast<Stmt*>(S), Ctx, CFG::BuildOptions().setAllAlwaysAdd())),
-      StmtToBlock(mapStmtsToBlocks(*Cfg)) {}
+      Cfg(CFG::buildCFG(nullptr, const_cast<Stmt*>(S), Ctx, CFG::BuildOptions().setAllAlwaysAdd())) {
+      mapStmtsToSuccessors(*Cfg);
+    }
   };
 
   llvm::DenseMap<const Stmt*, ClangClogCFG> StmtToCFG;
