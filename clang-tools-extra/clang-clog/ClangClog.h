@@ -2,6 +2,7 @@
 #include <vector>
 #include "clang/AST/ASTContext.h"
 #include "clang/AST/ASTTypeTraits.h"
+#include "clang/AST/DeclBase.h"
 #include "clang/Basic/PlistSupport.h"
 #include "clang/Tooling/Tooling.h"
 #include "clang/Tooling/CompilationDatabase.h"
@@ -69,10 +70,19 @@ class ClangClog {
     EdgeMap SuccStmt;
     // Set of synthetic statements that are last in their expansion
     llvm::DenseSet<const DeclStmt*> LastSyntheticDeclStmt;
+    // Map Decl's to their DeclStmt
+    llvm::DenseMap<const Decl*, const DeclStmt*> DeclToStmt;
 
 
   public:
     succ_range successors(const Stmt *S) const;
+
+    const DeclStmt* lookupStmtForDecl(const Decl *D) const {
+      auto It = DeclToStmt.find(D);
+      if (It == DeclToStmt.end())
+        return nullptr;
+      return It->second;
+    }
 
     const DeclStmt* getLastSyntheticDeclStmt(const Stmt *S) const {
       if (const auto *D = dyn_cast<DeclStmt>(S)) {

@@ -358,6 +358,9 @@ void ClangClog::ClangClogCFG::mapStmtsToSuccessors(const CFG &Cfg) {
           if (It != Cfg.getSyntheticDeclStmts().end()) {
             SyntheticDecl[It->second] = D;
           }
+
+          const auto *SingleDecl = D->getSingleDecl();
+          DeclToStmt[SingleDecl] = D;
         }
       }
     }
@@ -402,12 +405,13 @@ std::vector<i64> ClangClog::cfgSucc(i64 NodeId) {
   ASTContext *Ctx;
   std::tie(Node, Ctx) = getNodeFromId(NodeId);
 
-  const auto *S = Node.get<Stmt>();
-  if (!S)
+  const Stmt *S = Node.get<Stmt>();
+  const Decl *D = Node.get<Decl>();
+
+  if (!S && !D)
     return std::vector<i64>();
 
-
-  const Stmt *Body = getParentFunctionBody(S, *Ctx);
+  const Stmt *Body = S ? getParentFunctionBody(S, *Ctx) : getParentFunctionBody(D, *Ctx);
   if (!Body)
     return std::vector<i64>();
 
@@ -416,16 +420,20 @@ std::vector<i64> ClangClog::cfgSucc(i64 NodeId) {
 
   const auto &Cfg = CfgIt->getSecond();
 
-  if (const auto *D = Cfg.getLastSyntheticDeclStmt(S)) {
-    // S is a DeclStmt that is expanded to multiple synthetic DeclStmts
-    // Return the successors of the last of these.
-    S = D;
+  if (D) {
+    // This is a declaration
+    S = Cfg.lookupStmtForDecl(D);
+    if (!S)
+      return std::vector<i64>();
   }
 
   std::vector<i64> Ret;
   for (const Stmt *Succ : Cfg.successors(S)) {
-    const auto *RealSucc = Cfg.skipSyntheticSuccessor(Succ);
-    Ret.push_back(getIdForNode(DynTypedNode::create(*RealSucc), Ctx));
+    if (const auto *SuccD = dyn_cast<DeclStmt>(Succ)) {
+      Ret.push_back(getIdForNode(DynTypedNode::create(*SuccD->getSingleDecl()), Ctx));
+    } else {
+      Ret.push_back(getIdForNode(DynTypedNode::create(*Succ), Ctx));
+    }
   }
 
   return Ret;
