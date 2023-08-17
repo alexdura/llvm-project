@@ -192,9 +192,10 @@ public:
   bool isParent(const i64 ParentId, const i64 NodeId);
   bool isAncestor(const i64 AncestorId, const i64 NodeId);
   std::string name(const i64 NodeId);
+  std::string kind(const i64 NodeId);
   i64 cfg(i64 NodeId);
   std::vector<i64> cfgSucc(i64 NodeId);
-  std::vector<i64> cfgPred(i64 Cfg, i64 NodeId) { };
+  std::vector<i64> cfgPred(i64 Cfg, i64 NodeId) { /* not implemented */ };
   std::string dump(const i64 NodeId);
 
 private:

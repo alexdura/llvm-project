@@ -243,6 +243,11 @@ std::string ClangClog::name(const i64 NodeId) {
   return "";
 }
 
+std::string ClangClog::kind(const i64 NodeId) {
+  auto Node = NodeIds.getEntry(NodeId);
+  return Node.getNodeKind().asStringRef().str();
+}
+
 i64 ClangClog::parent(i64 NodeId) {
   DynTypedNode Node;
   ASTContext *Ctx;
