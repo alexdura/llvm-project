@@ -185,18 +185,25 @@ public:
   void runGlobalMatchers();
   std::vector<std::vector<i64>> matchFromRoot(i64 MatcherId);
   std::vector<std::vector<i64>> matchFromNode(i64 MatcherId, i64 NodeId);
+
+  // Node properties
   Loc srcLocation(i64 NodeId) const;
   i64 type(i64 NodeId);
   i64 decl(i64 NodeId);
+  bool hasGlobalStorage(i64 NodeId);
   i64 parent(i64 NodeId);
   bool isParent(const i64 ParentId, const i64 NodeId);
   bool isAncestor(const i64 AncestorId, const i64 NodeId);
   std::string name(const i64 NodeId);
-  std::string kind(const i64 NodeId);
+
+  // CFG
   i64 cfg(i64 NodeId);
   std::vector<i64> cfgSucc(i64 NodeId);
   std::vector<i64> cfgPred(i64 Cfg, i64 NodeId) { /* not implemented */ };
+
+  // Debug
   std::string dump(const i64 NodeId);
+  std::string kind(const i64 NodeId);
 
 private:
   // AST node <-> u64 map

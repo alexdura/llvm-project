@@ -316,13 +316,14 @@ i64 ClangClog::cfg(i64 NodeId) {
   return 0;
 }
 
-static const Stmt *getASTStmt(const CFGStmt &S, const CFG &Cfg) {
-  if (const auto *D = dyn_cast<DeclStmt>(S.getStmt())) {
-    auto It = Cfg.getSyntheticDeclStmts().find(D);
-    if (It != Cfg.getSyntheticDeclStmts().end())
-      return It->getSecond();
-  }
-  return S.getStmt();
+bool ClangClog::hasGlobalStorage(i64 NodeId) {
+  DynTypedNode Node;
+  ASTContext *Ctx;
+  std::tie(Node, Ctx) = getNodeFromId(NodeId);
+  const auto *S = Node.get<VarDecl>();
+  if (!S)
+    return false;
+  return S->hasGlobalStorage();
 }
 
 static const Stmt* nextStmtInBlock(CFGBlock::const_iterator Begin,
