@@ -162,13 +162,17 @@ ClangClog::Loc ClangClog::srcLocation(i64 NodeId) const {
 
   const auto &SM = Ctx->getSourceManager();
 
-  return {
-    SM.getPresumedLoc(SM.getSpellingLoc(SR.getBegin())).getFilename(),
-    SM.getSpellingLineNumber(SR.getBegin()),
-    SM.getSpellingColumnNumber(SR.getBegin()),
-    SM.getSpellingLineNumber(SR.getEnd()),
-    SM.getSpellingColumnNumber(SR.getEnd())
-  };
+  const auto &Presumed = SM.getPresumedLoc(SM.getSpellingLoc(SR.getBegin()));
+  if (Presumed.isValid())
+    return {
+      Presumed.getFilename(),
+      SM.getSpellingLineNumber(SR.getBegin()),
+      SM.getSpellingColumnNumber(SR.getBegin()),
+      SM.getSpellingLineNumber(SR.getEnd()),
+      SM.getSpellingColumnNumber(SR.getEnd())
+    };
+
+  return {"", 0, 0, 0, 0};
 }
 
 i64 ClangClog::type(i64 NodeId) {
