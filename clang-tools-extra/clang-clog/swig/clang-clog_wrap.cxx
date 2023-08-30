@@ -1841,6 +1841,23 @@ SWIGEXPORT jlong JNICALL Java_clang_swig_clogJNI_ClangClog_1parent(JNIEnv *jenv,
 }
 
 
+SWIGEXPORT jlong JNICALL Java_clang_swig_clogJNI_ClangClog_1index(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jlong jarg2) {
+  jlong jresult = 0 ;
+  clang::clog::ClangClog *arg1 = (clang::clog::ClangClog *) 0 ;
+  clang::clog::i64 arg2 ;
+  clang::clog::i64 result;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(clang::clog::ClangClog **)&jarg1; 
+  arg2 = (clang::clog::i64)jarg2; 
+  result = (clang::clog::i64)(arg1)->index(arg2);
+  jresult = (jlong)result; 
+  return jresult;
+}
+
+
 SWIGEXPORT jboolean JNICALL Java_clang_swig_clogJNI_ClangClog_1isParent(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jlong jarg2, jlong jarg3) {
   jboolean jresult = 0 ;
   clang::clog::ClangClog *arg1 = (clang::clog::ClangClog *) 0 ;

@@ -274,6 +274,39 @@ i64 ClangClog::parent(i64 NodeId) {
   }
 }
 
+i64 ClangClog::index(i64 NodeId) {
+  DynTypedNode Node;
+  ASTContext *Ctx;
+  std::tie(Node, Ctx) = getNodeFromId(NodeId);
+
+  auto Parents = Ctx->getParents(Node);
+
+  if (Parents.empty())
+    return -1;
+
+  const auto PIt = Parents.begin();
+  if (std::next(PIt) != Parents.end())
+    return -1; // Expecting at most one parent.
+
+  if (const auto *C = PIt->get<CallExpr>()) {
+    if (const auto *Arg = Node.get<Expr>()) {
+      for (unsigned i = 0; i < C->getNumArgs(); ++i) {
+        if (C->getArg(i) == Arg)
+          return i;
+      }
+    }
+  } else if (const auto *P = Node.get<ParmVarDecl>()) {
+    if (const auto *F = PIt->get<FunctionDecl>()) {
+      for (unsigned i = 0; i < F->getNumParams(); ++i) {
+        if (F->getParamDecl(i) == P)
+          return i;
+      }
+    }
+  }
+
+  return -1;
+}
+
 template<typename NodeT>
 static const Stmt* getParentFunctionBody(const NodeT *N, ASTContext &Ctx) {
   for (const auto &P : Ctx.getParents(*N)) {

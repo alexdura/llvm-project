@@ -192,6 +192,7 @@ public:
   i64 decl(i64 NodeId);
   bool hasGlobalStorage(i64 NodeId);
   i64 parent(i64 NodeId);
+  i64 index(i64 NodeId);
   bool isParent(const i64 ParentId, const i64 NodeId);
   bool isAncestor(const i64 AncestorId, const i64 NodeId);
   std::string name(const i64 NodeId);
