@@ -1886,11 +1886,14 @@ private:
     ParmVarDeclBits.ParameterIndex = parameterIndex;
     assert(ParmVarDeclBits.ParameterIndex == parameterIndex && "truncation!");
   }
+
+public:
   unsigned getParameterIndex() const {
     unsigned d = ParmVarDeclBits.ParameterIndex;
     return d == ParameterIndexSentinel ? getParameterIndexLarge() : d;
   }
 
+private:
   void setParameterIndexLarge(unsigned parameterIndex);
   unsigned getParameterIndexLarge() const;
 };

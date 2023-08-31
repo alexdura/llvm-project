@@ -296,12 +296,7 @@ i64 ClangClog::index(i64 NodeId) {
       }
     }
   } else if (const auto *P = Node.get<ParmVarDecl>()) {
-    if (const auto *F = PIt->get<FunctionDecl>()) {
-      for (unsigned i = 0; i < F->getNumParams(); ++i) {
-        if (F->getParamDecl(i) == P)
-          return i;
-      }
-    }
+    return P->getParameterIndex();
   }
 
   return -1;
