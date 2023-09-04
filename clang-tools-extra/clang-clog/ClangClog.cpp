@@ -84,6 +84,7 @@ void ClangClog::runGlobalMatchers() {
 
   for (auto &AST : ASTs) {
     auto &Ctx = AST->getASTContext();
+    TraversalKindScope TS(Ctx, TK_IgnoreUnlessSpelledInSource);
     GlobalFinder.matchAST(Ctx);
   }
 }
@@ -195,6 +196,14 @@ i64 ClangClog::decl(i64 NodeId) {
   if (const auto *DeclRef = Node.get<DeclRefExpr>()) {
     const NamedDecl *D = DeclRef->getFoundDecl();
     if (D) {
+      // Prefer function definitions to function declarations
+      if (const auto *FunDecl = dyn_cast<FunctionDecl>(D)) {
+        const FunctionDecl *Def = nullptr;
+        if (FunDecl->isDefined(Def)) {
+          D = Def;
+        }
+      }
+
       auto DynNode = DynTypedNode::create(*D);
       NodeToAST.insert(std::make_pair(DynNode, &D->getASTContext()));
       return NodeIds.getId(DynTypedNode::create(*D));
@@ -209,6 +218,8 @@ bool ClangClog::isParent(const i64 ParentId, const i64 NodeId) {
   std::tie(Node, Ctx) = getNodeFromId(NodeId);
 
   auto ParentNode = NodeIds.getEntry(ParentId);
+
+  TraversalKindScope TS(*Ctx, TK_IgnoreUnlessSpelledInSource);
 
   for (const auto &ParentCandidate : Ctx->getParents(Node)) {
     if (ParentNode == ParentCandidate)
@@ -231,6 +242,7 @@ bool ClangClog::isAncestor(const i64 AncestorId, const i64 NodeId) {
   DynTypedNode Node;
   ASTContext *Ctx;
   std::tie(Node, Ctx) = getNodeFromId(NodeId);
+  TraversalKindScope TS(*Ctx, TK_IgnoreUnlessSpelledInSource);
 
   auto AncestorNode = NodeIds.getEntry(AncestorId);
 
@@ -257,6 +269,7 @@ i64 ClangClog::parent(i64 NodeId) {
   ASTContext *Ctx;
   std::tie(Node, Ctx) = getNodeFromId(NodeId);
 
+  TraversalKindScope TS(*Ctx, TK_IgnoreUnlessSpelledInSource);
   auto Parents = Ctx->getParents(Node);
 
   if (Parents.empty()) {
@@ -279,6 +292,7 @@ i64 ClangClog::index(i64 NodeId) {
   ASTContext *Ctx;
   std::tie(Node, Ctx) = getNodeFromId(NodeId);
 
+  TraversalKindScope TS(*Ctx, TK_IgnoreUnlessSpelledInSource);
   auto Parents = Ctx->getParents(Node);
 
   if (Parents.empty())
@@ -291,7 +305,7 @@ i64 ClangClog::index(i64 NodeId) {
   if (const auto *C = PIt->get<CallExpr>()) {
     if (const auto *Arg = Node.get<Expr>()) {
       for (unsigned i = 0; i < C->getNumArgs(); ++i) {
-        if (C->getArg(i) == Arg)
+        if (C->getArg(i)->IgnoreUnlessSpelledInSource() == Arg)
           return i;
       }
     }
