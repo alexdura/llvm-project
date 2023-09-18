@@ -378,6 +378,16 @@ static const Stmt* nextStmtInBlock(CFGBlock::const_iterator Begin,
   return nullptr;
 }
 
+static const Stmt* prevStmtInBlock(CFGBlock::const_reverse_iterator RBegin,
+                                   CFGBlock::const_reverse_iterator REnd) {
+  for (auto PrevEIt = RBegin; PrevEIt != REnd; ++PrevEIt) {
+    if (PrevEIt->getKind() == CFGElement::Statement) {
+      return PrevEIt->castAs<CFGStmt>().getStmt();
+    }
+  }
+  return nullptr;
+}
+
 static const Stmt* firstStmtInBlock(const CFGBlock *B) {
   const Stmt* NextStmt = nextStmtInBlock(B->begin(), B->end());
   if (NextStmt) {
@@ -393,6 +403,28 @@ static const Stmt* firstStmtInBlock(const CFGBlock *B) {
       return firstStmtInBlock(FallthroughSucc);
   }
   return nullptr;
+}
+
+static void lastStmtInBlockHelper(const CFGBlock *B, std::vector<const Stmt*> &LastStmt) {
+  if (const Stmt *T = B->getTerminatorStmt()) {
+    LastStmt.push_back(T);
+    return;
+  }
+
+  if (const Stmt* PrevStmt = prevStmtInBlock(B->rbegin(), B->rend())) {
+    LastStmt.push_back(PrevStmt);
+    return;
+  }
+
+  for (const CFGBlock *PredB : B->preds()) {
+    lastStmtInBlockHelper(PredB, LastStmt);
+  }
+}
+
+static std::vector<const Stmt*> lastStmtInBlock(const CFGBlock *B) {
+  std::vector<const Stmt*> LastStmt;
+  lastStmtInBlockHelper(B, LastStmt);
+  return LastStmt;
 }
 
 void ClangClog::ClangClogCFG::mapStmtsToSuccessors(const CFG &Cfg) {
@@ -487,6 +519,12 @@ const Stmt* ClangClog::ClangClogCFG::entryStmt() const {
   return firstStmtInBlock(&Cfg->getEntry());
 }
 
+std::vector<const Stmt*> ClangClog::ClangClogCFG::exitStmts() const {
+  std::vector<const Stmt*> Ret;
+  lastStmtInBlockHelper(&Cfg->getExit(), Ret);
+  return Ret;
+}
+
 i64 ClangClog::cfgEntry(i64 NodeId) {
   DynTypedNode Node;
   ASTContext *Ctx;
@@ -506,6 +544,32 @@ i64 ClangClog::cfgEntry(i64 NodeId) {
     }
   }
   return 0;
+}
+
+std::vector<i64> ClangClog::cfgExit(i64 NodeId) {
+  DynTypedNode Node;
+  ASTContext *Ctx;
+  std::tie(Node, Ctx) = getNodeFromId(NodeId);
+
+  if (const auto *F = Node.get<FunctionDecl>()) {
+    if (F->hasBody()) {
+      const Stmt *Body = F->getBody();
+
+
+      decltype(StmtToCFG)::iterator CfgIt;
+      std::tie(CfgIt, std::ignore) = StmtToCFG.try_emplace(Body, Body, Ctx);
+
+      const auto &Cfg = CfgIt->getSecond();
+
+      std::vector<i64> Ret;
+      for (const auto *Stmt : Cfg.exitStmts()) {
+        Ret.push_back(getIdForNode(DynTypedNode::create(*Stmt), Ctx));
+      }
+      return Ret;
+    }
+  }
+
+  return std::vector<i64>();
 }
 
 std::string ClangClog::dump(i64 NodeId) {

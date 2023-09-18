@@ -81,6 +81,7 @@ class ClangClog {
     }
 
     const Stmt* entryStmt() const;
+    std::vector<const Stmt*> exitStmts() const;
 
     ClangClogCFG(const Stmt *S, ASTContext *Ctx) :
       Ctx(Ctx),
@@ -161,8 +162,12 @@ public:
   std::string name(const i64 NodeId);
 
   // CFG
+  // Dump the CFG
   i64 cfg(i64 NodeId);
+  // Get the entry stmt in the CFG
   i64 cfgEntry(i64 NodeId);
+  // Get the exit stmts of the CFG
+  std::vector<i64> cfgExit(i64 NodeId);
   std::vector<i64> cfgSucc(i64 NodeId);
   std::vector<i64> cfgPred(i64 Cfg, i64 NodeId) { /* not implemented */ };
 
