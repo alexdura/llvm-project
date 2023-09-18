@@ -64,12 +64,8 @@ class ClangClog {
 
     void mapStmtsToSuccessors(const CFG &CFG);
 
-    // Map AST statements to the last synthetic statement in their expansion
-    llvm::DenseMap<const DeclStmt*, const DeclStmt*> SyntheticDecl;
     // Map statements (AST or synthetic) to their control-flow successors
     EdgeMap SuccStmt;
-    // Set of synthetic statements that are last in their expansion
-    llvm::DenseSet<const DeclStmt*> LastSyntheticDeclStmt;
     // Map Decl's to their DeclStmt
     llvm::DenseMap<const Decl*, const DeclStmt*> DeclToStmt;
 
@@ -84,40 +80,7 @@ class ClangClog {
       return It->second;
     }
 
-    const DeclStmt* getLastSyntheticDeclStmt(const Stmt *S) const {
-      if (const auto *D = dyn_cast<DeclStmt>(S)) {
-        if (D->isSingleDecl())
-          return nullptr;
-        auto It = SyntheticDecl.find(D);
-        if (It != SyntheticDecl.end())
-          return It->second;
-      }
-      return nullptr;
-    }
-
-    const Stmt* skipSyntheticSuccessor(const Stmt *Succ) const {
-      // Synthetic stmts arise only in DeclStmts
-      const auto *D = dyn_cast<DeclStmt>(Succ);
-      if (!D)
-        return Succ;
-
-      // This is not a synthetic DeclStmt
-      auto It = Cfg->getSyntheticDeclStmts().find(D);
-      if (It == Cfg->getSyntheticDeclStmts().end())
-        return Succ;
-
-      if (LastSyntheticDeclStmt.contains(D)) {
-        // This is last synthetic DeclStmt in its expansion, replace it with the
-        // AST DeclStmt
-        return It->getSecond();
-      } else {
-        // This is synthetic, but is not the last in its expansion, so it has precisely one successor
-        // because it's not at the end of the block.
-        const Stmt *SS = *successors(D).begin();
-        return skipSyntheticSuccessor(SS);
-      }
-    }
-
+    const Stmt* entryStmt() const;
 
     ClangClogCFG(const Stmt *S, ASTContext *Ctx) :
       Ctx(Ctx),
@@ -199,6 +162,7 @@ public:
 
   // CFG
   i64 cfg(i64 NodeId);
+  i64 cfgEntry(i64 NodeId);
   std::vector<i64> cfgSucc(i64 NodeId);
   std::vector<i64> cfgPred(i64 Cfg, i64 NodeId) { /* not implemented */ };
 

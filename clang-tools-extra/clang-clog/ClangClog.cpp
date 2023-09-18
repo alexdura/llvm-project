@@ -406,11 +406,6 @@ void ClangClog::ClangClogCFG::mapStmtsToSuccessors(const CFG &Cfg) {
         PrevS = S->getStmt();
 
         if (const DeclStmt *D = dyn_cast<DeclStmt>(S->getStmt())) {
-          auto It = Cfg.getSyntheticDeclStmts().find(D);
-          if (It != Cfg.getSyntheticDeclStmts().end()) {
-            SyntheticDecl[It->second] = D;
-          }
-
           const auto *SingleDecl = D->getSingleDecl();
           DeclToStmt[SingleDecl] = D;
         }
@@ -434,10 +429,6 @@ void ClangClog::ClangClogCFG::mapStmtsToSuccessors(const CFG &Cfg) {
         }
       }
     }
-  }
-
-  for (auto It = SyntheticDecl.begin(), End = SyntheticDecl.end(); It != End; ++It) {
-    LastSyntheticDeclStmt.insert(It->second);
   }
 }
 
@@ -472,6 +463,7 @@ std::vector<i64> ClangClog::cfgSucc(i64 NodeId) {
 
   const auto &Cfg = CfgIt->getSecond();
 
+
   if (D) {
     // This is a declaration
     S = Cfg.lookupStmtForDecl(D);
@@ -489,6 +481,31 @@ std::vector<i64> ClangClog::cfgSucc(i64 NodeId) {
   }
 
   return Ret;
+}
+
+const Stmt* ClangClog::ClangClogCFG::entryStmt() const {
+  return firstStmtInBlock(&Cfg->getEntry());
+}
+
+i64 ClangClog::cfgEntry(i64 NodeId) {
+  DynTypedNode Node;
+  ASTContext *Ctx;
+  std::tie(Node, Ctx) = getNodeFromId(NodeId);
+
+  if (const auto *F = Node.get<FunctionDecl>()) {
+    if (F->hasBody()) {
+      const Stmt *Body = F->getBody();
+
+      decltype(StmtToCFG)::iterator CfgIt;
+      std::tie(CfgIt, std::ignore) = StmtToCFG.try_emplace(Body, Body, Ctx);
+
+      const auto &Cfg = CfgIt->getSecond();
+
+      if (const auto *EntryStmt = Cfg.entryStmt())
+        return getIdForNode(DynTypedNode::create(*EntryStmt), Ctx);
+    }
+  }
+  return 0;
 }
 
 std::string ClangClog::dump(i64 NodeId) {
