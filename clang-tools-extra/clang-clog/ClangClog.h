@@ -149,6 +149,7 @@ public:
   void runGlobalMatchers();
   std::vector<std::vector<i64>> matchFromRoot(i64 MatcherId);
   std::vector<std::vector<i64>> matchFromNode(i64 MatcherId, i64 NodeId);
+  std::vector<std::vector<i64>> matchAtNode(i64 MatcherId, i64 NodeId);
 
   // Node properties
   Loc srcLocation(i64 NodeId) const;

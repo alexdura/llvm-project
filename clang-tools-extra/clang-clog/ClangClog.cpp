@@ -110,6 +110,7 @@ std::vector<std::vector<i64>> ClangClog::matchFromRoot(i64 MatcherId) {
   return Result;
 }
 
+
 std::pair<DynTypedNode, ASTContext*> ClangClog::getNodeFromId(i64 NodeId) const {
   auto Node = NodeIds.getEntry(NodeId);
   auto It = NodeToAST.find(Node);
@@ -125,7 +126,71 @@ i64 ClangClog::getIdForNode(DynTypedNode N, ASTContext *Ctx) {
   return NodeIds.getId(N);
 }
 
+
+/// Copied from RewriteRule.cpp
+template <typename T>
+class DynamicForEachDescendantMatcher
+    : public ast_matchers::internal::MatcherInterface<T> {
+  const DynTypedMatcher DescendantMatcher;
+
+public:
+  explicit DynamicForEachDescendantMatcher(DynTypedMatcher DescendantMatcher)
+      : DescendantMatcher(std::move(DescendantMatcher)) {}
+
+  bool matches(
+      const T &Node, ast_matchers::internal::ASTMatchFinder *Finder,
+      ast_matchers::internal::BoundNodesTreeBuilder *Builder) const override {
+    return Finder->matchesDescendantOf(
+        Node, this->DescendantMatcher, Builder,
+        ast_matchers::internal::ASTMatchFinder::BK_All);
+  }
+};
+
+
 std::vector<std::vector<i64>> ClangClog::matchFromNode(i64 MatcherId, i64 NodeId) {
+  auto Node = NodeIds.getEntry(NodeId);
+  auto It = NodeToAST.find(Node);
+  if (It == NodeToAST.end()) {
+    llvm::errs() << "Could not find ASTContext for node nodeId=" << NodeId << " .";
+    llvm_unreachable("Ooops!");
+  }
+
+  auto NodeKind = Node.getNodeKind();
+  DynTypedMatcher DescendantMatcher = Matchers[MatcherId];
+  if (DescendantMatcher.canMatchNodesOfKind(NodeKind)) {
+    auto CladeKind = NodeKind.getCladeKind();
+    if (CladeKind.isSame(ASTNodeKind::getFromNodeKind<Stmt>())) {
+      DescendantMatcher = ast_matchers::internal::makeMatcher(new DynamicForEachDescendantMatcher<Stmt>(DescendantMatcher));
+    } else if (CladeKind.isSame(ASTNodeKind::getFromNodeKind<Decl>())) {
+      DescendantMatcher = ast_matchers::internal::makeMatcher(new DynamicForEachDescendantMatcher<Decl>(DescendantMatcher));
+    } else {
+      llvm_unreachable((std::string("Unknown clade kind ") + CladeKind.asStringRef().str()).c_str());
+    }
+  } else {
+    return {};
+  }
+
+  ast_matchers::MatchFinder Finder;
+  CollectBoundNodes Collector(NodeToAST);
+  Finder.addDynamicMatcher(DescendantMatcher, &Collector);
+
+  auto *Context = It->second;
+  TraversalKindScope TS(*Context, TK_IgnoreUnlessSpelledInSource);
+  Finder.match(Node, *Context);
+
+  std::vector<std::vector<i64>> Result;
+  for (auto BN : Collector.Bindings) {
+    std::vector<i64> Row;
+    for (auto B : BN.getMap()) {
+      i64 NodeId = NodeIds.getId(B.second);
+      Row.push_back(NodeId);
+    }
+    Result.push_back(std::move(Row));
+  }
+  return Result;
+}
+
+std::vector<std::vector<i64>> ClangClog::matchAtNode(i64 MatcherId, i64 NodeId) {
   auto Node = NodeIds.getEntry(NodeId);
   auto It = NodeToAST.find(Node);
   if (It == NodeToAST.end()) {
@@ -137,9 +202,9 @@ std::vector<std::vector<i64>> ClangClog::matchFromNode(i64 MatcherId, i64 NodeId
   ast_matchers::MatchFinder Finder;
 
   CollectBoundNodes Collector(NodeToAST);
-
   Finder.addDynamicMatcher(Matchers[MatcherId], &Collector);
 
+  TraversalKindScope TS(*Context, TK_IgnoreUnlessSpelledInSource);
   Finder.match(Node, *Context);
 
   std::vector<std::vector<i64>> Result;
