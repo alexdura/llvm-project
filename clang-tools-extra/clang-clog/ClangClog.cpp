@@ -611,7 +611,14 @@ static llvm::cl::OptionCategory ClangClogCategory("clang-clog options");
 tooling::CommonOptionsParser ClangClogBuilder::buildOptionsParser(int Argc, const char **Argv) {
   auto P = CommonOptionsParser::create(Argc, Argv, ClangClogCategory, llvm::cl::OneOrMore);
   if (!P) {
+    llvm::errs() << P.takeError() << "\n";
     llvm_unreachable("Ooops! Failed to build the OptionParser.");
+  } else {
+    llvm::dbgs() << "Clog flags: ";
+    for (unsigned I = 0; I < Argc; ++I) {
+      dbgs() << Argv[I] << " ";
+    }
+    dbgs() << "\n";
   }
   return std::move(*P);
 }
