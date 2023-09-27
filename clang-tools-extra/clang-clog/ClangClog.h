@@ -91,6 +91,7 @@ class ClangClog {
   };
 
   llvm::DenseMap<const Stmt*, ClangClogCFG> StmtToCFG;
+  llvm::StringMap<const NamedDecl*> CrossTUSymbolTable;
 
   struct CollectBoundNodes : clang::ast_matchers::MatchFinder::MatchCallback {
     std::vector<clang::ast_matchers::BoundNodes> Bindings;

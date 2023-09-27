@@ -32,12 +32,26 @@ using namespace clang::ast_matchers::internal;
 namespace clang {
 namespace clog {
 
+
+static bool topLevelVisitor(void *Context, const Decl *D) {
+  auto *ST = reinterpret_cast<StringMap<const Decl *>*>(Context);
+  if (const auto *F = dyn_cast<FunctionDecl>(D)) {
+    if (F->isExternallyVisible() && F->hasBody()) {
+      ST->insert(std::make_pair(F->getName(), D));
+    }
+  }
+  return true;
+}
+
 bool ClangClog::init() {
   switch (Tool.buildASTs(ASTs)) {
   case 2:
     llvm::errs() << "Failed to build the ASTs for some of the files.";
     LLVM_FALLTHROUGH;
   case 0:
+    for (auto &AST : ASTs) {
+      AST->visitLocalTopLevelDecls(&CrossTUSymbolTable, topLevelVisitor);
+    }
     return true;
   case 1:
     return false;
@@ -266,6 +280,11 @@ i64 ClangClog::decl(i64 NodeId) {
         const FunctionDecl *Def = nullptr;
         if (FunDecl->isDefined(Def)) {
           D = Def;
+        } else {
+          auto It = CrossTUSymbolTable.find(D->getName());
+          if (It != CrossTUSymbolTable.end()) {
+            D = It->second;
+          }
         }
       }
 
