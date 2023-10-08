@@ -626,6 +626,12 @@ i64 ClangClog::cfgEntry(i64 NodeId) {
       if (const auto *EntryStmt = Cfg.entryStmt())
         return getIdForNode(DynTypedNode::create(*EntryStmt), Ctx);
     }
+  } else if (const auto *S = Node.get<Stmt>()) {
+    auto LocalCfg = CFG::buildCFG(nullptr, const_cast<Stmt*>(S), Ctx, CFG::BuildOptions().setAllAlwaysAdd());
+    if (const auto *EntryStmt = firstStmtInBlock(&LocalCfg->getEntry())) {
+      return getIdForNode(DynTypedNode::create(*EntryStmt), Ctx);
+    }
+
   }
   return 0;
 }
