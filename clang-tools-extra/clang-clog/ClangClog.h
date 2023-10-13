@@ -176,6 +176,7 @@ public:
   // Debug
   std::string dump(const i64 NodeId);
   std::string kind(const i64 NodeId);
+  i64 enclosingFunction(i64 NodeId);
 
 private:
   // AST node <-> u64 map

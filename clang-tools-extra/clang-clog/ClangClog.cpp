@@ -400,18 +400,26 @@ i64 ClangClog::index(i64 NodeId) {
   return -1;
 }
 
-template<typename NodeT>
-static const Stmt* getParentFunctionBody(const NodeT *N, ASTContext &Ctx) {
+template <typename NodeT>
+static const FunctionDecl* getParentFunction(const NodeT *N, ASTContext &Ctx) {
   for (const auto &P : Ctx.getParents(*N)) {
     if (const auto *FuncDecl = P.template get<FunctionDecl>()) {
-      return FuncDecl->getBody();
+      return FuncDecl;
     } else if (const auto *ParentS = P.template get<Stmt>()) {
-      return getParentFunctionBody(ParentS, Ctx);
+      return getParentFunction(ParentS, Ctx);
     } else if (const auto *ParentD = P.template get<Decl>()) {
-      return getParentFunctionBody(ParentD, Ctx);
+      return getParentFunction(ParentD, Ctx);
     }
     // Only look at first element
     break;
+  }
+  return nullptr;
+}
+
+template<typename NodeT>
+static const Stmt* getParentFunctionBody(const NodeT *N, ASTContext &Ctx) {
+  if (const FunctionDecl *F = getParentFunction(N, Ctx)) {
+    return F->getBody();
   }
   return nullptr;
 }
@@ -670,6 +678,23 @@ std::string ClangClog::dump(i64 NodeId) {
   llvm::raw_string_ostream Out(Str);
   Node.dump(Out, *Ctx);
   return Str;
+}
+
+i64 ClangClog::enclosingFunction(i64 NodeId) {
+  DynTypedNode Node;
+  ASTContext *Ctx;
+  std::tie(Node, Ctx) = getNodeFromId(NodeId);
+  const Stmt *S = Node.get<Stmt>();
+  const Decl *D = Node.get<Decl>();
+
+  if (!S && !D)
+    return 0;
+
+  if (const FunctionDecl *F = S ? getParentFunction(S, *Ctx) : getParentFunction(D, *Ctx)) {
+    return getIdForNode(DynTypedNode::create(*F), Ctx);
+  }
+
+  return 0;
 }
 
 ClangClogBuilder::~ClangClogBuilder() {
