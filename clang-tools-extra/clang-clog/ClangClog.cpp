@@ -641,6 +641,11 @@ i64 ClangClog::cfgEntry(i64 NodeId) {
       // the node itself
       return NodeId;
     } else if (const auto *EntryStmt = firstStmtInBlock(&LocalCfg->getEntry())) {
+      if (const auto *DS = dyn_cast<DeclStmt>(EntryStmt)) {
+        if (DS->decl_begin() != DS->decl_end()) {
+          return getIdForNode(DynTypedNode::create(**DS->decl_begin()), Ctx);
+        }
+      }
       return getIdForNode(DynTypedNode::create(*EntryStmt), Ctx);
     }
 
