@@ -636,7 +636,11 @@ i64 ClangClog::cfgEntry(i64 NodeId) {
     }
   } else if (const auto *S = Node.get<Stmt>()) {
     auto LocalCfg = CFG::buildCFG(nullptr, const_cast<Stmt*>(S), Ctx, CFG::BuildOptions().setAllAlwaysAdd());
-    if (const auto *EntryStmt = firstStmtInBlock(&LocalCfg->getEntry())) {
+    if (!LocalCfg) {
+      // If this node does not contain any CFG elements, e.g. it's a break statements, then just return
+      // the node itself
+      return NodeId;
+    } else if (const auto *EntryStmt = firstStmtInBlock(&LocalCfg->getEntry())) {
       return getIdForNode(DynTypedNode::create(*EntryStmt), Ctx);
     }
 
