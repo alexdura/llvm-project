@@ -171,17 +171,14 @@ std::vector<std::vector<i64>> ClangClog::matchFromNode(i64 MatcherId, i64 NodeId
 
   auto NodeKind = Node.getNodeKind();
   DynTypedMatcher DescendantMatcher = Matchers[MatcherId];
-  if (DescendantMatcher.canMatchNodesOfKind(NodeKind)) {
-    auto CladeKind = NodeKind.getCladeKind();
-    if (CladeKind.isSame(ASTNodeKind::getFromNodeKind<Stmt>())) {
-      DescendantMatcher = ast_matchers::internal::makeMatcher(new DynamicForEachDescendantMatcher<Stmt>(DescendantMatcher));
-    } else if (CladeKind.isSame(ASTNodeKind::getFromNodeKind<Decl>())) {
-      DescendantMatcher = ast_matchers::internal::makeMatcher(new DynamicForEachDescendantMatcher<Decl>(DescendantMatcher));
-    } else {
-      llvm_unreachable((std::string("Unknown clade kind ") + CladeKind.asStringRef().str()).c_str());
-    }
+
+  auto CladeKind = NodeKind.getCladeKind();
+  if (CladeKind.isSame(ASTNodeKind::getFromNodeKind<Stmt>())) {
+    DescendantMatcher = ast_matchers::internal::makeMatcher(new DynamicForEachDescendantMatcher<Stmt>(DescendantMatcher));
+  } else if (CladeKind.isSame(ASTNodeKind::getFromNodeKind<Decl>())) {
+    DescendantMatcher = ast_matchers::internal::makeMatcher(new DynamicForEachDescendantMatcher<Decl>(DescendantMatcher));
   } else {
-    return {};
+    llvm_unreachable((std::string("Unknown clade kind ") + CladeKind.asStringRef().str()).c_str());
   }
 
   ast_matchers::MatchFinder Finder;
