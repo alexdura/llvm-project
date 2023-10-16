@@ -1792,6 +1792,23 @@ SWIGEXPORT jlong JNICALL Java_clang_swig_clogJNI_ClangClog_1srcLocation(JNIEnv *
 }
 
 
+SWIGEXPORT jlong JNICALL Java_clang_swig_clogJNI_ClangClog_1srcExpansionLocation(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jlong jarg2) {
+  jlong jresult = 0 ;
+  clang::clog::ClangClog *arg1 = (clang::clog::ClangClog *) 0 ;
+  clang::clog::i64 arg2 ;
+  clang::clog::ClangClog::Loc result;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(clang::clog::ClangClog **)&jarg1; 
+  arg2 = (clang::clog::i64)jarg2; 
+  result = ((clang::clog::ClangClog const *)arg1)->srcExpansionLocation(arg2);
+  *(clang::clog::ClangClog::Loc **)&jresult = new clang::clog::ClangClog::Loc((const clang::clog::ClangClog::Loc &)result); 
+  return jresult;
+}
+
+
 SWIGEXPORT jlong JNICALL Java_clang_swig_clogJNI_ClangClog_1type(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jlong jarg2) {
   jlong jresult = 0 ;
   clang::clog::ClangClog *arg1 = (clang::clog::ClangClog *) 0 ;

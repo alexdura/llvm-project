@@ -255,6 +255,30 @@ ClangClog::Loc ClangClog::srcLocation(i64 NodeId) const {
   return {"", 0, 0, 0, 0};
 }
 
+ClangClog::Loc ClangClog::srcExpansionLocation(i64 NodeId) const {
+  DynTypedNode Node;
+  ASTContext *Ctx;
+
+  std::tie(Node, Ctx) = getNodeFromId(NodeId);
+  auto SR = Node.getSourceRange();
+
+  const auto &SM = Ctx->getSourceManager();
+
+  const auto &Presumed = SM.getPresumedLoc(SM.getExpansionLoc(SR.getBegin()));
+  if (Presumed.isValid())
+    return {
+      Presumed.getFilename(),
+      SM.getExpansionLineNumber(SR.getBegin()),
+      SM.getExpansionColumnNumber(SR.getBegin()),
+      SM.getExpansionLineNumber(SR.getEnd()),
+      SM.getExpansionColumnNumber(SR.getEnd())
+    };
+
+  return {"", 0, 0, 0, 0};
+}
+
+
+
 i64 ClangClog::type(i64 NodeId) {
   DynTypedNode Node;
   ASTContext *Ctx;

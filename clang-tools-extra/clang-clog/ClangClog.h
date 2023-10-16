@@ -154,6 +154,7 @@ public:
 
   // Node properties
   Loc srcLocation(i64 NodeId) const;
+  Loc srcExpansionLocation(i64 NodeId) const;
   i64 type(i64 NodeId);
   i64 decl(i64 NodeId);
   bool hasGlobalStorage(i64 NodeId);
