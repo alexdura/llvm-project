@@ -15,6 +15,7 @@
 #include "clang/ASTMatchers/Dynamic/Parser.h"
 #include "llvm/ADT/iterator_range.h"
 #include "llvm/Support/Casting.h"
+#include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/ErrorOr.h"
 #include "llvm/ADT/DenseMap.h"
 #include "clang/Analysis/CFG.h"
@@ -369,6 +370,10 @@ std::string ClangClog::kind(const i64 NodeId) {
   return Node.getNodeKind().asStringRef().str();
 }
 
+static void debugDump(llvm::raw_ostream &OS, DynTypedNode N, const ASTContext &Ctx) {
+  N.dump(OS, Ctx);
+}
+
 i64 ClangClog::parent(i64 NodeId) {
   DynTypedNode Node;
   ASTContext *Ctx;
@@ -383,10 +388,19 @@ i64 ClangClog::parent(i64 NodeId) {
     const auto *PIt = Parents.begin();
     auto ParentNode = *PIt;
 
-    if (std::next(PIt) != Parents.end()) {
+#ifndef NDEBUG
+    if (LLVM_UNLIKELY(std::next(PIt) != Parents.end())) {
       llvm::errs() << "Expecting that nodeId=" << NodeId << " has at most one parent. This should hold for C (no templates)";
+      llvm::dbgs() << "Node:\n";
+      debugDump(llvm::dbgs(), Node, *Ctx);
+      llvm::dbgs() << "Parents:\n";
+      for (const auto P : Parents) {
+        debugDump(llvm::dbgs(), P, *Ctx);
+        llvm::dbgs() << "---";
+      }
       llvm_unreachable("Ooops!");
     }
+#endif
 
     return getIdForNode(ParentNode, Ctx);
   }
