@@ -263,6 +263,7 @@ RegistryMaps::RegistryMaps() {
   REGISTER_MATCHER(genericSelectionExpr);
   REGISTER_MATCHER(gnuNullExpr);
   REGISTER_MATCHER(gotoStmt);
+  REGISTER_MATCHER(hasLabel);
   REGISTER_MATCHER(has);
   REGISTER_MATCHER(hasAncestor);
   REGISTER_MATCHER(hasAnyArgument);

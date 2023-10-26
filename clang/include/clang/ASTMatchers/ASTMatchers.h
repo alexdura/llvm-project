@@ -2254,6 +2254,10 @@ extern const internal::VariadicDynCastAllOfMatcher<Stmt, ReturnStmt> returnStmt;
 ///   matches 'goto FOO'
 extern const internal::VariadicDynCastAllOfMatcher<Stmt, GotoStmt> gotoStmt;
 
+AST_MATCHER_P(GotoStmt, hasLabel, internal::Matcher<LabelDecl>, LabelMatcher) {
+  return Node.getLabel() && LabelMatcher.matches(*Node.getLabel(), Finder, Builder);
+}
+
 /// Matches label statements.
 ///
 /// Given
