@@ -1949,6 +1949,74 @@ SWIGEXPORT jstring JNICALL Java_clang_swig_clogJNI_ClangClog_1name(JNIEnv *jenv,
 }
 
 
+SWIGEXPORT jboolean JNICALL Java_clang_swig_clogJNI_ClangClog_1isIntegerLiteral(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jlong jarg2) {
+  jboolean jresult = 0 ;
+  clang::clog::ClangClog *arg1 = (clang::clog::ClangClog *) 0 ;
+  clang::clog::i64 arg2 ;
+  bool result;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(clang::clog::ClangClog **)&jarg1; 
+  arg2 = (clang::clog::i64)jarg2; 
+  result = (bool)(arg1)->isIntegerLiteral(arg2);
+  jresult = (jboolean)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jlong JNICALL Java_clang_swig_clogJNI_ClangClog_1integerLiteralValue(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jlong jarg2) {
+  jlong jresult = 0 ;
+  clang::clog::ClangClog *arg1 = (clang::clog::ClangClog *) 0 ;
+  clang::clog::i64 arg2 ;
+  clang::clog::i64 result;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(clang::clog::ClangClog **)&jarg1; 
+  arg2 = (clang::clog::i64)jarg2; 
+  result = (clang::clog::i64)(arg1)->integerLiteralValue(arg2);
+  jresult = (jlong)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jboolean JNICALL Java_clang_swig_clogJNI_ClangClog_1isStringLiteral(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jlong jarg2) {
+  jboolean jresult = 0 ;
+  clang::clog::ClangClog *arg1 = (clang::clog::ClangClog *) 0 ;
+  clang::clog::i64 arg2 ;
+  bool result;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(clang::clog::ClangClog **)&jarg1; 
+  arg2 = (clang::clog::i64)jarg2; 
+  result = (bool)(arg1)->isStringLiteral(arg2);
+  jresult = (jboolean)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jstring JNICALL Java_clang_swig_clogJNI_ClangClog_1stringLiteralValue(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jlong jarg2) {
+  jstring jresult = 0 ;
+  clang::clog::ClangClog *arg1 = (clang::clog::ClangClog *) 0 ;
+  clang::clog::i64 arg2 ;
+  std::string result;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(clang::clog::ClangClog **)&jarg1; 
+  arg2 = (clang::clog::i64)jarg2; 
+  result = (arg1)->stringLiteralValue(arg2);
+  jresult = jenv->NewStringUTF((&result)->c_str()); 
+  return jresult;
+}
+
+
 SWIGEXPORT jlong JNICALL Java_clang_swig_clogJNI_ClangClog_1cfg(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jlong jarg2) {
   jlong jresult = 0 ;
   clang::clog::ClangClog *arg1 = (clang::clog::ClangClog *) 0 ;

@@ -164,6 +164,12 @@ public:
   bool isAncestor(const i64 AncestorId, const i64 NodeId);
   std::string name(const i64 NodeId);
 
+  // Literal properties
+  bool isIntegerLiteral(i64 NodeId);
+  i64 integerLiteralValue(i64 NodeId);
+  bool isStringLiteral(i64 NodeId);
+  std::string stringLiteralValue(i64 NodeId);
+
   // CFG
   // Dump the CFG
   i64 cfg(i64 NodeId);

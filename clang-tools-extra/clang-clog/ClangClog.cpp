@@ -1,4 +1,5 @@
 #include "ClangClog.h"
+#include <limits>
 #include <string>
 #include <iterator>
 #include <vector>
@@ -739,6 +740,40 @@ i64 ClangClog::enclosingFunction(i64 NodeId) {
   }
 
   return 0;
+}
+
+bool ClangClog::isIntegerLiteral(i64 NodeId) {
+  DynTypedNode Node;
+  ASTContext *Ctx;
+  std::tie(Node, Ctx) = getNodeFromId(NodeId);
+  return  Node.get<IntegerLiteral>();
+}
+
+i64 ClangClog::integerLiteralValue(i64 NodeId) {
+  DynTypedNode Node;
+  ASTContext *Ctx;
+  std::tie(Node, Ctx) = getNodeFromId(NodeId);
+  const IntegerLiteral *C = Node.get<IntegerLiteral>();
+  if (!C)
+    return std::numeric_limits<i64>::min();
+  return C->getValue().getSExtValue();
+}
+
+bool ClangClog::isStringLiteral(i64 NodeId) {
+  DynTypedNode Node;
+  ASTContext *Ctx;
+  std::tie(Node, Ctx) = getNodeFromId(NodeId);
+  return Node.get<StringLiteral>();
+}
+
+std::string ClangClog::stringLiteralValue(i64 NodeId) {
+  DynTypedNode Node;
+  ASTContext *Ctx;
+  std::tie(Node, Ctx) = getNodeFromId(NodeId);
+  const auto *S = Node.get<StringLiteral>();
+  if (!S)
+    return "";
+  return S->getString().str();
 }
 
 ClangClogBuilder::~ClangClogBuilder() {
